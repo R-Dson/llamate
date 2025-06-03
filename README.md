@@ -35,6 +35,12 @@ Llamate streamlines language model management with automated workflows and GPU o
 2. **Build `llama-server`**
    Follow the build instructions for your platform to create the `llama-server` binary
 
+### Installation
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/R-Dson/llamate/main/install.sh | bash
+```
+
 ### Setup
 ```bash
 # Initialize environment
