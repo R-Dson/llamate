@@ -1,0 +1,84 @@
+name: Python package
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'README.md'
+      - '*.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest pyYAML pytest-mock requests
+      - name: Lint with flake8
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit with zero even if there are warnings (non-zero exit would stop the build)
+          exit 0
+      - name: Test with pytest
+        run: |
+          pytest tests
+      - name: Package with PyInstaller
+        run: |
+          pip install pyinstaller
+          pyinstaller llamate.spec
+      - name: Upload Native Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: llamate # Artifact containing the compiled binary
+          path: dist/ # Uploads the contents of the dist/ directory (e.g., dist/llamate)
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Get Latest Tag
+        id: get_latest_tag
+        run: |
+          git fetch --tags
+          latest_tag=$(git tag | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          if [ -z "$latest_tag" ]; then
+            echo "next_tag=v0.1.0" >> $GITHUB_OUTPUT
+          else
+            major=$(echo $latest_tag | cut -d. -f1 | tr -d 'v')
+            minor=$(echo $latest_tag | cut -d. -f2)
+            patch=$(echo $latest_tag | cut -d. -f3)
+            next_patch=$((patch + 1))
+            echo "next_tag=v$major.$minor.$next_patch" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download Native Binary Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: llamate # Must match the 'name' in the upload-artifact step
+          path: dist # Download artifact contents into a 'dist' directory
+                     # This ensures the path 'dist/llamate' is available for the release
+
+      - name: Create and Upload Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.get_latest_tag.outputs.next_tag }}
+          name: "Release ${{ steps.get_latest_tag.outputs.next_tag }}"
+          generateReleaseNotes: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "dist/llamate"

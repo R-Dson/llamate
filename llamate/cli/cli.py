@@ -1,0 +1,127 @@
+"""Command-line interface for Llamate."""
+import argparse
+import sys
+from typing import List, Optional
+
+from .. import constants
+from ..core import config
+from .commands import config as config_commands
+from .commands import init as init_commands
+from .commands import model as model_commands
+from .commands import serve as serve_commands
+
+def create_parser() -> argparse.ArgumentParser:
+    """Create the command-line argument parser."""
+    parser = argparse.ArgumentParser(prog="Llamate", description="Simple model management for llama-swap")
+    subparsers = parser.add_subparsers(dest='command', required=False)
+
+    # Initialize command
+    init_parser = subparsers.add_parser('init', help='Initialize Llamate')
+    init_parser.add_argument('--arch', help='Override system architecture (amd64, arm64, etc)')
+    init_parser.set_defaults(func=init_commands.init_command)
+
+    # Set command
+    set_parser = subparsers.add_parser('set', help='Set global config or model arguments',
+                                      description="Set global config or model arguments.\n\n" +
+                                      "Global keys: " + ", ".join(constants.DEFAULT_CONFIG.keys()))
+    set_parser.add_argument('model_name', nargs='?', help='Model name or KEY=VALUE for global config')
+    set_parser.add_argument('model_args', nargs='*', help='Additional KEY=VALUE pairs for model config')
+    set_parser.set_defaults(func=config_commands.handle_set_command)
+
+    # Model management commands
+    add_parser = subparsers.add_parser('add', help='Add a new model')
+    add_parser.add_argument('hf_spec', help='Model spec (e.g. "repo_id:file" or model alias)')
+    add_parser.add_argument('--alias', help='Custom name for the model')
+    add_parser.add_argument('--set', nargs='+', help='Set model arguments (KEY=VALUE)')
+    add_parser.add_argument('--no-gpu', action='store_false', dest='auto_gpu',
+                          help='Disable automatic GPU configuration')
+    add_parser.set_defaults(func=model_commands.model_add_command)
+
+    list_parser = subparsers.add_parser('list', help='List configured models')
+    list_parser.set_defaults(func=model_commands.model_list_command)
+
+    remove_parser = subparsers.add_parser('remove', help='Remove a model')
+    remove_parser.add_argument('model_name', help='Name of the model to remove')
+    remove_parser.add_argument('--delete-gguf', action='store_true',
+                             help='Also delete the GGUF file')
+    remove_parser.set_defaults(func=model_commands.model_remove_command)
+
+    # Config commands
+    config_parser = subparsers.add_parser('config', help='Model configuration commands')
+    config_subparsers = config_parser.add_subparsers(dest='config_command')
+
+    config_set = config_subparsers.add_parser('set', help='Set model argument')
+    config_set.add_argument('model_name', help='Model name')
+    config_set.add_argument('key', help='Argument name')
+    config_set.add_argument('value', help='Argument value')
+    config_set.set_defaults(func=config_commands.config_set_command)
+
+    config_get = config_subparsers.add_parser('get', help='Get model argument')
+    config_get.add_argument('model_name', help='Model name')
+    config_get.add_argument('key', help='Argument name')
+    config_get.set_defaults(func=config_commands.config_get_command)
+
+    config_list = config_subparsers.add_parser('list', help='List model arguments')
+    config_list.add_argument('model_name', help='Model name')
+    config_list.set_defaults(func=config_commands.config_list_args_command)
+
+    config_remove = config_subparsers.add_parser('remove', help='Remove model argument')
+    config_remove.add_argument('model_name', help='Model name')
+    config_remove.add_argument('key', help='Argument name')
+    config_remove.set_defaults(func=config_commands.config_remove_arg_command)
+
+    # Serve command
+    serve_parser = subparsers.add_parser('serve', help='Run the llama-swap server')
+    serve_parser.set_defaults(func=serve_commands.serve_command)
+
+    # Print command
+    print_parser = subparsers.add_parser('print', help='Print the llama-swap config')
+    print_parser.set_defaults(func=config_commands.print_config_command)
+
+    return parser
+
+def main(args: Optional[List[str]] = None) -> int:
+    """Main entry point for the CLI.
+    
+    Args:
+        args: Command line arguments, if None uses sys.argv[1:]
+        
+    Returns:
+        int: Exit code
+    """
+    if args is None:
+        args = sys.argv[1:]
+
+    parser = create_parser()
+    parsed_args = parser.parse_args(args)
+
+    try:
+        if parsed_args.command == None:
+            # Check if llamate needs initialization
+            if config.constants.LLAMATE_HOME.exists():
+                reinitialize = input("Llamate is already initialized. Do you want to re-initialize? (Y)es/(N)o: ").lower()
+                print("Llamate needs to be initialized.")
+                if reinitialize == 'y' or reinitialize == 'yes':
+                    print("Initializing Llamate...")
+                    init_commands.init_command(argparse.Namespace(arch=None))
+                    return 0
+                else:
+                    print("Initialization skipped.")
+                    parser.print_help()
+                    return 1
+            
+            print("Re-initializing Llamate...")
+            init_commands.init_command(argparse.Namespace(arch=None))
+
+        if hasattr(parsed_args, 'func'):
+            parsed_args.func(parsed_args)
+            return 0
+        else:
+            parser.print_help()
+            return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+if __name__ == '__main__':
+    sys.exit(main())
