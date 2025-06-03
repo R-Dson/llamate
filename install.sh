@@ -48,23 +48,33 @@ check_prerequisites
 INSTALL_DIR="$USER_INSTALL_DIR" # Default to user
 SYSTEM_INSTALL=false
 
-echo "" # Newline for clarity
-echo "Install '$TARGET_BINARY_NAME' system-wide ($SYSTEM_INSTALL_DIR)? (Requires sudo)"
-echo -n "Enter yes or no (default is no): "
+# Check if running interactively (stdin is a terminal)
+if [ -t 0 ]; then
+    echo "" # Newline for clarity
+    echo "Install '$TARGET_BINARY_NAME' system-wide ($SYSTEM_INSTALL_DIR)? (Requires sudo)"
+    echo -n "Enter yes or no (default is no): "
 
-# Variables for the prompt, not in a function so no 'local'
-choice=""
-read choice
-lower_choice=$(echo "${choice:-}" | tr '[:upper:]' '[:lower:]')
+    # Variables for the prompt, not in a function so no 'local'
+    choice=""
+    read choice
+    lower_choice=$(echo "${choice:-}" | tr '[:upper:]' '[:lower:]')
 
-if [ "$lower_choice" == "yes" ] || [ "$lower_choice" == "y" ]; then
-    INSTALL_DIR="$SYSTEM_INSTALL_DIR"
-    SYSTEM_INSTALL=true
-    log "Installing system-wide to '$INSTALL_DIR'."
+    if [ "$lower_choice" == "yes" ] || [ "$lower_choice" == "y" ]; then
+        INSTALL_DIR="$SYSTEM_INSTALL_DIR"
+        SYSTEM_INSTALL=true
+        log "Installing system-wide to '$INSTALL_DIR'."
+    else
+        INSTALL_DIR="$USER_INSTALL_DIR"
+        SYSTEM_INSTALL=false
+        log "Installing for user in '$INSTALL_DIR'."
+    fi
 else
+    # Not running interactively, default to user install
+    log "Running non-interactively, defaulting to user installation in '$USER_INSTALL_DIR'."
     INSTALL_DIR="$USER_INSTALL_DIR"
     SYSTEM_INSTALL=false
-    log "Installing for user in '$INSTALL_DIR'."
+    # Set lower_choice to a default value to avoid unbound variable error with set -u
+    lower_choice=""
 fi
 
 
