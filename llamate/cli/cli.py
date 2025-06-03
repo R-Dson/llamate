@@ -99,7 +99,7 @@ def main(args: Optional[List[str]] = None) -> int:
         if parsed_args.command == None:
             # Check if llamate needs initialization
             if config.constants.LLAMATE_HOME.exists():
-                reinitialize = input("Llamate is already initialized. Do you want to re-initialize? (Y)es/(N)o: ").lower()
+                reinitialize = input("Llamate is already initialized. Do you want to re-initialize? (y)es/(N)o: ").lower()
                 print("Llamate needs to be initialized.")
                 if reinitialize == 'y' or reinitialize == 'yes':
                     print("Initializing Llamate...")

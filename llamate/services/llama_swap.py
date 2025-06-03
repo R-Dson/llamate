@@ -25,6 +25,11 @@ def download_binary(dest_dir: Path, arch_override: str = None) -> Path:
     """
     os_name, auto_arch = platform.get_platform_info()
     arch = arch_override or auto_arch
+
+    # Map common architecture names to match release asset naming
+    if os_name == 'linux' and arch == 'x64':
+        arch = 'amd64'
+        
     ext = '.zip' if os_name == 'windows' else '.tar.gz'
 
     try:
