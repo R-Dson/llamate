@@ -12,14 +12,14 @@ from ..core import config, download, platform
 
 def download_binary(dest_dir: Path, arch_override: str = None) -> Path:
     """Download the llama-swap binary.
-    
+
     Args:
         dest_dir: Directory to download to
         arch_override: Optional architecture override
-        
+
     Returns:
         Path: Path to the downloaded archive
-        
+
     Raises:
         RuntimeError: If download fails or platform is not supported
     """
@@ -29,7 +29,7 @@ def download_binary(dest_dir: Path, arch_override: str = None) -> Path:
     # Map common architecture names to match release asset naming
     if os_name == 'linux' and arch == 'x64':
         arch = 'amd64'
-        
+
     ext = '.zip' if os_name == 'windows' else '.tar.gz'
 
     try:
@@ -48,10 +48,10 @@ def download_binary(dest_dir: Path, arch_override: str = None) -> Path:
             dest_file = dest_dir / asset['name']
             download.download_file(url, dest_file)
             return dest_file
-            
+
     except Exception as e:
         raise RuntimeError(f"Failed to get release info: {e}")
-
+    
 def extract_binary(archive: Path, dest_dir: Path) -> None:
     """Extract the llama-swap binary from archive.
     

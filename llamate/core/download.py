@@ -1,7 +1,6 @@
 """Download functionality for Llamate."""
 import sys
-import urllib.request
-import urllib.error
+import requests # Use requests for better HTTP handling
 from pathlib import Path
 
 
@@ -47,29 +46,40 @@ def download_file(url: str, destination: Path, resume: bool = True) -> None:
             mf.write(str(downloaded_bytes))
             
         headers = {'Range': f'bytes={downloaded_bytes}-'} if resume and downloaded_bytes > 0 else {}
-        with urllib.request.urlopen(urllib.request.Request(url, headers=headers)) as response:
-            total_size = int(response.headers.get('content-length', 0)) + downloaded_bytes
-            mode = 'ab' if resume and downloaded_bytes > 0 else 'wb'
-            
-            with open(tmp_file, mode) as f:
-                while True:
-                    chunk = response.read(8192)
-                    if not chunk:
-                        break
-                    f.write(chunk)
-                    total_downloaded += len(chunk)
+        
+        # Use requests for downloading
+        response = requests.get(url, headers=headers, stream=True)
+        response.raise_for_status() # Raise an exception for bad status codes
 
-                    if total_size > 0:
-                        progress = total_downloaded / total_size * 100
-                        print(f"\rDownloading: {format_bytes(total_downloaded)}/{format_bytes(total_size)} ({progress:.1f}%)", 
-                              end='', flush=True)
-                    with open(meta_file, 'w') as mf:
-                        mf.write(str(total_downloaded))
+        total_size = int(response.headers.get('content-length', 0))
+        if total_size == 0 and 'content-range' in response.headers:
+             # Handle case where server returns Content-Range for resumed download
+            content_range = response.headers['content-range']
+            import re
+            match = re.match(r'bytes \d+-(\d+)/(\d+)', content_range)
+            if match:
+                total_size = int(match.group(2)) - downloaded_bytes
 
-    except (urllib.error.URLError, IOError) as e:
+        total_size += downloaded_bytes # Add previously downloaded bytes to total size
+
+        mode = 'ab' if resume and downloaded_bytes > 0 else 'wb'
+        
+        with open(tmp_file, mode) as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if not chunk:
+                    break
+                f.write(chunk)
+                total_downloaded += len(chunk)
+
+                if total_size > 0:
+                    progress = total_downloaded / total_size * 100
+                    print(f"\rDownloading: {format_bytes(total_downloaded)}/{format_bytes(total_size)} ({progress:.1f}%)", 
+                          end='', flush=True)
+                with open(meta_file, 'w') as mf:
+                    mf.write(str(total_downloaded))
+
+    except requests.exceptions.RequestException as e:
         error_msg = str(e)
-        if isinstance(e, urllib.error.URLError):
-            error_msg = error_msg.replace('<urlopen error ', '').rstrip('>')
         print(f"\nDownload failed: {error_msg}", file=sys.stderr)
         if total_downloaded > downloaded_bytes:
             try:
@@ -78,6 +88,10 @@ def download_file(url: str, destination: Path, resume: bool = True) -> None:
             except IOError:
                 pass  # Ignore errors writing meta file
         raise RuntimeError(f"Download failed: {error_msg}")
+    except IOError as e:
+         error_msg = str(e)
+         print(f"\nDownload failed: {error_msg}", file=sys.stderr)
+         raise RuntimeError(f"Download failed: {error_msg}")
     finally:
         print()
         try:
