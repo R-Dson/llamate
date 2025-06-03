@@ -55,7 +55,7 @@ echo -n "Enter yes or no (default is no): "
 # Variables for the prompt, not in a function so no 'local'
 choice=""
 read choice
-lower_choice=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
+lower_choice=$(echo "${choice:-}" | tr '[:upper:]' '[:lower:]')
 
 if [ "$lower_choice" == "yes" ] || [ "$lower_choice" == "y" ]; then
     INSTALL_DIR="$SYSTEM_INSTALL_DIR"
