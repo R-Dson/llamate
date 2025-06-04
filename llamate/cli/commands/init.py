@@ -1,7 +1,5 @@
 """Initialization command implementation."""
 from pathlib import Path
-from typing import Optional
-import platform
 
 from ...core import config
 from ...services import llama_swap

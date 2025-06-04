@@ -42,6 +42,7 @@ class MockResponse:
     def __init__(self, json_data, status_code):
         self._json_data = json_data
         self.status_code = status_code
+        self.status = status_code  # Needed for urllib compatibility
         self.text = json.dumps(json_data) # Provide text attribute
 
     def json(self):
@@ -55,7 +56,7 @@ class MockResponse:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb): 
+    def __exit__(self, exc_type, exc_val, exc_tb):
         pass # Nothing to clean up for this mock
 
 @patch('requests.get')
@@ -114,13 +115,13 @@ def test_download_binary_no_matching_asset(mock_get, tmp_path, mock_platform_inf
     mock_get.return_value = mock_response
 
     with patch('urllib.request.urlopen', return_value=mock_get.return_value):
-        with pytest.raises(RuntimeError, match="No asset found for linux/amd64"):
+        with pytest.raises(RuntimeError, match=r"No asset found for linux/amd64"):
             llama_swap.download_binary(tmp_path)
 
 def test_download_binary_github_api_error(tmp_path, mock_platform_info, mock_download):
     """Test binary download when GitHub API request fails."""
     with patch('urllib.request.urlopen', side_effect=urllib.error.URLError("API error")):
-        with pytest.raises(RuntimeError, match="Failed to get release info: <urlopen error API error>"):
+        with pytest.raises(RuntimeError, match=r"Failed to get release info \(Network error\): .*API error"):
             llama_swap.download_binary(tmp_path)
 
 def test_extract_binary_zip(tmp_path):
