@@ -98,4 +98,4 @@ jobs:
           name: "llamate ${{ steps.get_latest_tag.outputs.next_tag }}"
           generateReleaseNotes: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "dist/*, VERSION"
+          artifacts: "dist/*"
