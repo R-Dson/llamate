@@ -1,4 +1,5 @@
 """Download functionality for Llamate."""
+import certifi
 import sys
 import requests # Use requests for better HTTP handling
 from pathlib import Path
@@ -48,7 +49,13 @@ def download_file(url: str, destination: Path, resume: bool = True) -> None:
         headers = {'Range': f'bytes={downloaded_bytes}-'} if resume and downloaded_bytes > 0 else {}
         
         # Use requests for downloading
-        response = requests.get(url, headers=headers, stream=True)
+        response = requests.get(
+            url,
+            headers=headers,
+            stream=True,
+            verify=certifi.where(),
+            timeout=30
+        )
         response.raise_for_status() # Raise an exception for bad status codes
 
         total_size = int(response.headers.get('content-length', 0))

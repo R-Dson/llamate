@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import certifi
 block_cipher = None
 
 a = Analysis(
@@ -8,6 +9,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('llamate/data/model_aliases.py', 'llamate/data'),  # Include model aliases data
+        (certifi.where(), 'certifi'),
     ],
     hiddenimports=[
         'llamate.cli.commands.config',
