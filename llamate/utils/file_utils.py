@@ -1,4 +1,4 @@
-"""File utility functions for Llamate"""
+"""File utility functions for llamate"""
 
 from pathlib import Path
 

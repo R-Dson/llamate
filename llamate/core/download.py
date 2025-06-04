@@ -1,4 +1,4 @@
-"""Download functionality for Llamate."""
+"""Download functionality for llamate."""
 import certifi
 import sys
 import requests # Use requests for better HTTP handling

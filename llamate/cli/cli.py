@@ -1,4 +1,4 @@
-"""Command-line interface for Llamate."""
+"""Command-line interface for llamate."""
 import argparse
 import sys
 from typing import List, Optional
@@ -12,11 +12,11 @@ from .commands import serve as serve_commands
 
 def create_parser() -> argparse.ArgumentParser:
     """Create the command-line argument parser."""
-    parser = argparse.ArgumentParser(prog="Llamate", description="Simple model management for llama-swap")
+    parser = argparse.ArgumentParser(prog="llamate", description="Simple model management for llama-swap")
     subparsers = parser.add_subparsers(dest='command', required=False)
 
     # Initialize command
-    init_parser = subparsers.add_parser('init', help='Initialize Llamate')
+    init_parser = subparsers.add_parser('init', help='Initialize llamate')
     init_parser.add_argument('--arch', help='Override system architecture (amd64, arm64, etc)')
     init_parser.set_defaults(func=init_commands.init_command)
 
@@ -99,10 +99,10 @@ def main(args: Optional[List[str]] = None) -> int:
         if parsed_args.command == None:
             # Check if llamate needs initialization
             if config.constants.LLAMATE_HOME.exists():
-                reinitialize = input("Llamate is already initialized. Do you want to re-initialize? (y)es/(N)o: ").lower()
-                print("Llamate needs to be initialized.")
+                reinitialize = input("llamate is already initialized. Do you want to re-initialize? (y)es/(N)o: ").lower()
+                print("llamate needs to be initialized.")
                 if reinitialize == 'y' or reinitialize == 'yes':
-                    print("Initializing Llamate...")
+                    print("Initializing llamate...")
                     init_commands.init_command(argparse.Namespace(arch=None))
                     return 0
                 else:
@@ -110,7 +110,7 @@ def main(args: Optional[List[str]] = None) -> int:
                     parser.print_help()
                     return 1
             
-            print("Re-initializing Llamate...")
+            print("Re-initializing llamate...")
             init_commands.init_command(argparse.Namespace(arch=None))
 
         if hasattr(parsed_args, 'func'):

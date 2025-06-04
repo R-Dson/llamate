@@ -1,4 +1,4 @@
-"""Configuration management for Llamate."""
+"""Configuration management for llamate."""
 from pathlib import Path
 import yaml
 import json
@@ -17,7 +17,7 @@ def literal_presenter(dumper, data):
 yaml.add_representer(literal_str, literal_presenter)
 
 def init_paths(base_path: Optional[Path] = None) -> None:
-    """Initialize global paths for Llamate.
+    """Initialize global paths for llamate.
     
     Args:
         base_path: Optional custom base path. If None, uses ~/.config/llamate

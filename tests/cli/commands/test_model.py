@@ -127,7 +127,7 @@ def test_model_add_command_with_set_args(mock_save_config, mock_add_model, mock_
 """
 
 def test_model_add_command_not_initialized(mock_model_commands, capsys):
-    """Test adding a model when Llamate is not initialized."""
+    """Test adding a model when llamate is not initialized."""
     mocks = mock_model_commands
     mocks["mock_path_exists"].return_value = False # Simulate LLAMATE_HOME does not exist
     args = MagicMock(hf_spec="user/repo:model.gguf", alias=None, set=None, auto_gpu=True)
@@ -137,7 +137,7 @@ def test_model_add_command_not_initialized(mock_model_commands, capsys):
 
     assert excinfo.value.code == 1
     captured = capsys.readouterr()
-    assert "Llamate is not initialized. Run 'llamate init' first." in captured.out
+    assert "llamate is not initialized. Run 'llamate init' first." in captured.out
     mocks["mock_save_model_config"].assert_not_called()
 
 # TODO: Fix get_model_dir function and test

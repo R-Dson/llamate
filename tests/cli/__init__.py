@@ -1,4 +1,4 @@
-"""Tests for Llamate's command line interface.
+"""Tests for llamate's command line interface.
 
 This package contains tests for:
 - Command parsing and execution

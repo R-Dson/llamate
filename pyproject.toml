@@ -2,7 +2,7 @@
 name = "llamate"
 version = "0.1.0"
 description = "Simple model management for llama-swap"
-authors = ["Llamate Contributors"]
+authors = ["llamate Contributors"]
 readme = "README.md"
 license = "MIT"
 packages = [{include = "llamate"}]

@@ -1,4 +1,4 @@
-"""Core functionality for Llamate."""
+"""Core functionality for llamate."""
 
 from . import config
 from . import model

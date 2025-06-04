@@ -1,4 +1,4 @@
-"""Service layer for Llamate."""
+"""Service layer for llamate."""
 from . import llama_server
 from . import llama_swap
 

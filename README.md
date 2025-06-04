@@ -1,9 +1,9 @@
-# Llamate 🌟
+# llamate 🌟
 
 Simple command-line tool for managing and running GGUF format language models.
 *Version: 0.1.0*
 
-Llamate streamlines language model management with automated workflows and GPU optimization. It's designed for users who need easy and efficient model handling.
+llamate streamlines language model management with automated workflows and GPU optimization. It's designed for users who need easy and efficient model handling.
 
 ## Key Features ✨
 - **Model management**:
@@ -87,7 +87,7 @@ llamate serve --port 9090 --n-gpu-layers 24
 > **Note**: The server will serve models based on your configuration. Use `llamate config --set-default` to specify which model to serve by default.
 
 ## Configuration Overview ⚙️
-Llamate uses YAML configuration files:
+llamate uses YAML configuration files:
 - **Global config**: `~/.config/llamate/config.yaml`
 - **Model configs**: `~/.config/llamate/models/*.yaml`
 - **Model GGUF files**: `~/.config/llamate/GGUFs/*.yaml`

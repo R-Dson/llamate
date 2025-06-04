@@ -1,4 +1,4 @@
-"""Llamate - Simple model management for llama-swap."""
+"""llamate - Simple model management for llama-swap."""
 from .cli.cli import main
 from .core.config import init_paths
 

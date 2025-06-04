@@ -7,15 +7,15 @@ from ...core import config
 from ...services import llama_swap
 
 def init_command(args) -> None:
-    """Initialize Llamate.
+    """Initialize llamate.
     
     Args:
         args: Command line arguments containing arch override
     """
     first_run = not config.constants.LLAMATE_HOME.exists()
     if first_run:
-        print("Welcome to Llamate! 🦙\n")
-        print("This appears to be your first run. Llamate will:")
+        print("Welcome to llamate! 🦙\n")
+        print("This appears to be your first run. llamate will:")
         print("1. Configure your llama-server path")
         print("2. Create configuration directory at ~/.config/llamate")
         print("3. Download the llama-swap binary\n")

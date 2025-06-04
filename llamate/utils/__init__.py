@@ -1,4 +1,4 @@
-"""Utility functions for Llamate"""
+"""Utility functions for llamate"""
 
 from . import file_utils
 from . import text_utils

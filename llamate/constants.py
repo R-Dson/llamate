@@ -1,4 +1,4 @@
-"""Global constants and default configurations for Llamate."""
+"""Global constants and default configurations for llamate."""
 from pathlib import Path
 
 # Global paths will be initialized by core.config

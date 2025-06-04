@@ -89,11 +89,11 @@ def test_init_command_first_run_success(mock_init_command, mock_stdout):
 
     # Assert success messages were printed (basic check)
     output = mock_stdout.getvalue()
-    assert "Welcome to Llamate!" in output
+    assert "Welcome to llamate!" in output
     assert "Initialization complete!" in output
 
 def test_init_command_already_initialized(mock_init_command, mock_stdout):
-    """Test initialization when Llamate is already initialized"""
+    """Test initialization when llamate is already initialized"""
     mocks = mock_init_command
     mocks["llamate_home"].mkdir(parents=True, exist_ok=True)
     mock_llama_server_path = "/fake/path/to/llama-server"
@@ -119,7 +119,7 @@ def test_init_command_already_initialized(mock_init_command, mock_stdout):
 
     # Assert welcome message is NOT printed
     output = mock_stdout.getvalue()
-    assert "Welcome to Llamate!" not in output
+    assert "Welcome to llamate!" not in output
     assert "Initialization complete!" in output
 
 def test_init_command_empty_path_input(mock_init_command, mock_stdout):

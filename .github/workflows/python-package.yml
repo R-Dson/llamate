@@ -78,7 +78,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.get_latest_tag.outputs.next_tag }}
-          name: "Release ${{ steps.get_latest_tag.outputs.next_tag }}"
+          name: "llamate ${{ steps.get_latest_tag.outputs.next_tag }}"
           generateReleaseNotes: true
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: "dist/llamate"

@@ -12,7 +12,7 @@ def model_add_command(args) -> None:
         args: Command line arguments containing hf_spec, alias, set args, and auto_gpu flag
     """
     if not config.constants.LLAMATE_HOME.exists():
-        print("Llamate is not initialized. Run 'llamate init' first.")
+        print("llamate is not initialized. Run 'llamate init' first.")
         raise SystemExit(1)
 
     # Check for pre-configured model

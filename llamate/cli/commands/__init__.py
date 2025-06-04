@@ -1,4 +1,4 @@
-"""Command implementations for Llamate CLI."""
+"""Command implementations for llamate CLI."""
 
 from .init import init_command
 from .model import (

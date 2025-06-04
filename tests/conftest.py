@@ -1,4 +1,4 @@
-"""Test fixtures for Llamate"""
+"""Test fixtures for llamate"""
 import pytest
 from pathlib import Path
 import os

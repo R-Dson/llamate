@@ -1,4 +1,4 @@
-"""Command-line interface module for Llamate."""
+"""Command-line interface module for llamate."""
 from .cli import main
 from . import commands
 
