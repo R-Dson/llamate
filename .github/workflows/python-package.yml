@@ -52,8 +52,8 @@ jobs:
         with:
           name: llamate # Artifact containing the compiled binary
           path: |
-            dist/
-            VERSION # Uploads the contents of the dist/ directory (e.g., dist/llamate)
+            dist/*
+            VERSION
           if-no-files-found: error
 
   release:
