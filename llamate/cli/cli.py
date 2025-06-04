@@ -9,6 +9,7 @@ from .commands import config as config_commands
 from .commands import init as init_commands
 from .commands import model as model_commands
 from .commands import serve as serve_commands
+from ..data.model_aliases import MODEL_ALIASES
 
 def create_parser() -> argparse.ArgumentParser:
     """Create the command-line argument parser."""
@@ -29,8 +30,17 @@ def create_parser() -> argparse.ArgumentParser:
     set_parser.set_defaults(func=config_commands.handle_set_command)
 
     # Model management commands
-    add_parser = subparsers.add_parser('add', help='Add a new model')
-    add_parser.add_argument('hf_spec', help='Model spec (e.g. "repo_id:file" or model alias)')
+    alias_list = "\n".join([f"  • {alias}" for alias in MODEL_ALIASES.keys()])
+    add_parser = subparsers.add_parser(
+        'add',
+        help='Add a new model',
+        description=f"Add a new model using a Huggingface repo or pre-configured alias.\n\nAvailable aliases:\n{alias_list} \n\n Or use a Huggingface repo directly as 'Qwen/Qwen3-32B-GGUF:Qwen3-32B-Q4_K_M.gguf'.\n\n",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    add_parser.add_argument(
+        'hf_spec',
+        help='Model spec (e.g. "repo_id:file" or model alias)'
+    )
     add_parser.add_argument('--alias', help='Custom name for the model')
     add_parser.add_argument('--set', nargs='+', help='Set model arguments (KEY=VALUE)')
     add_parser.add_argument('--no-gpu', action='store_false', dest='auto_gpu',
