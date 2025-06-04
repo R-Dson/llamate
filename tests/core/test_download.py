@@ -1,7 +1,7 @@
 """Tests for download functionality."""
 import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock, mock_open, ANY
 import requests # Import requests for mocking
 from io import StringIO
 import re # Import re for content-range parsing
@@ -103,7 +103,7 @@ def test_download_file_success(mock_download, capsys):
     download_file(url, destination, resume=False)
 
     # Assert requests.get was called
-    mocks["mock_get"].assert_called_once_with(url, headers={}, stream=True)
+    mocks["mock_get"].assert_called_once_with(url, headers={}, stream=True, verify=ANY, timeout=30)
     mocks["mock_path_mkdir"].assert_called_once()
     # Assert that open was called with the temporary file in write binary mode
     mocks["mock_builtin_open"].assert_any_call(destination.with_suffix(".txt.tmp"), 'wb')
@@ -172,7 +172,7 @@ def test_download_file_resume_meta_read_error(mock_download, capsys):
     download_file(url, destination, resume=True)
 
     # Assert requests.get was called without Range header
-    mocks["mock_get"].assert_called_once_with(url, headers={}, stream=True)
+    mocks["mock_get"].assert_called_once_with(url, headers={}, stream=True, verify=ANY, timeout=30)
     mocks["mock_builtin_open"].call_count == 2
     mocks["mock_builtin_open"].assert_any_call(meta_file, 'r')
     mocks["mock_builtin_open"].assert_any_call(destination.with_suffix(".txt.tmp"), 'wb')
@@ -196,7 +196,7 @@ def test_download_file_url_error(mock_download, capsys):
     with pytest.raises(RuntimeError, match="Download failed: Mocked network error"):
         download_file(url, destination, resume=False)
 
-    mocks["mock_get"].assert_called_once_with(url, headers={}, stream=True)
+    mocks["mock_get"].assert_called_once_with(url, headers={}, stream=True, verify=ANY, timeout=30)
     mocks["mock_path_rename"].assert_not_called()
     # Meta file might exist or should be kept with partial download, so don't assert unlink
     # mocks["mock_path_unlink"].assert_not_called()
@@ -230,7 +230,7 @@ def test_download_file_io_error(mock_download, capsys):
     with pytest.raises(RuntimeError, match="Download failed: Mocked disk full error"):
         download_file(url, destination, resume=False)
 
-    mocks["mock_get"].assert_called_once_with(url, headers={}, stream=True)
+    mocks["mock_get"].assert_called_once_with(url, headers={}, stream=True, verify=ANY, timeout=30)
     # Should attempt to create the meta file and temp file
     assert mocks["mock_builtin_open"].call_count >= 2
     mocks["mock_path_rename"].assert_not_called()
