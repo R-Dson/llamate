@@ -1,10 +1,8 @@
 """Tests for model management commands."""
 import pytest
-from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from llamate.cli.commands.model import model_add_command, model_list_command, model_remove_command
-from llamate.core import config, model
 from llamate import constants
 
 @pytest.fixture

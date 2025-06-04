@@ -46,6 +46,11 @@ def create_parser() -> argparse.ArgumentParser:
                              help='Also delete the GGUF file')
     remove_parser.set_defaults(func=model_commands.model_remove_command)
 
+    # Pull command
+    pull_parser = subparsers.add_parser('pull', help='Download GGUF file')
+    pull_parser.add_argument('model_name_or_spec', help='Model to download (name, repo:file, or URL)')
+    pull_parser.set_defaults(func=model_commands.model_pull_command)
+
     # Config commands
     config_parser = subparsers.add_parser('config', help='Model configuration commands')
     config_subparsers = config_parser.add_subparsers(dest='config_command')

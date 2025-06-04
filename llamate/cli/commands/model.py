@@ -1,8 +1,9 @@
 """Model management command implementations."""
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+import sys
 
 from ...core import config, model
+from ...core import download
 from ...data.model_aliases import MODEL_ALIASES
 
 def model_add_command(args) -> None:
@@ -83,3 +84,51 @@ def model_remove_command(args) -> None:
             print(f"GGUF file '{model_config['hf_file']}' removed.")
     except ValueError as e:
         print(f"Error: {e}")
+
+def model_pull_command(args) -> None:
+    """Download GGUF file for a model"""
+    if not config.constants.LLAMATE_HOME.exists():
+        print("llamate is not initialized. Run 'llamate init' first.")
+        raise SystemExit(1)
+    
+    model_name_or_spec = args.model_name_or_spec
+    
+    # Check input type
+    # Check for pre-configured model alias
+    if model_name_or_spec in MODEL_ALIASES:
+        config_dict = MODEL_ALIASES[model_name_or_spec].copy()
+        model_name = model_name_or_spec
+    elif ':' in model_name_or_spec or model_name_or_spec.startswith("https://"):
+        # Parse as HF spec
+        try:
+            hf_repo, hf_file = model.parse_hf_spec(model_name_or_spec)
+            model_name = Path(hf_file).stem.replace(' ', '_').replace('.', '_')
+            config_dict = {"hf_repo": hf_repo, "hf_file": hf_file}
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        # Treat as model name
+        model_name = model_name_or_spec
+        try:
+            config_dict = config.load_model_config(model_name)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+    
+    global_config = config.load_global_config()
+    gguf_dir = global_config["ggufs_storage_path"]
+    Path(gguf_dir).mkdir(parents=True, exist_ok=True)
+    gguf_path = Path(gguf_dir) / config_dict["hf_file"]
+    
+    if gguf_path.exists():
+        print(f"GGUF already exists at {gguf_path}")
+        return
+    
+    try:
+        url = f"https://huggingface.co/{config_dict['hf_repo']}/resolve/main/{config_dict['hf_file']}"
+        download.download_file(url, gguf_path)
+        print(f"Successfully downloaded {config_dict['hf_file']} to {gguf_path}")
+    except Exception as e:
+        print(f"Download failed: {e}", file=sys.stderr)
+        sys.exit(1)
