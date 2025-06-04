@@ -91,6 +91,11 @@ jobs:
           path: dist # Download artifact contents into a 'dist' directory
                      # This ensures the path 'dist/llamate' is available for the release
 
+      - name: List downloaded files for debugging
+        run: |
+          echo "Contents of dist directory:"
+          ls -l dist
+
       - name: Create and Upload Release
         id: create_release
         uses: ncipollo/release-action@v1
@@ -99,4 +104,4 @@ jobs:
           name: "llamate ${{ steps.get_latest_tag.outputs.next_tag }}"
           generateReleaseNotes: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "dist/llamate"
+          artifacts: "dist/*"
