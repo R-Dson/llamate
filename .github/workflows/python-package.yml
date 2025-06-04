@@ -52,7 +52,7 @@ jobs:
         with:
           name: llamate # Artifact containing the compiled binary
           path: |
-            dist/*
+            dist
             VERSION
           if-no-files-found: error
 
@@ -88,13 +88,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: llamate # Must match the 'name' in the upload-artifact step
-          path: dist # Download artifact contents into a 'dist' directory
-                     # This ensures the path 'dist/llamate' is available for the release
-
-      - name: List downloaded files for debugging
-        run: |
-          echo "Contents of dist directory:"
-          ls -l dist
+          path: . # Download artifact contents into the current directory
 
       - name: Create and Upload Release
         id: create_release
@@ -104,4 +98,4 @@ jobs:
           name: "llamate ${{ steps.get_latest_tag.outputs.next_tag }}"
           generateReleaseNotes: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "dist/*"
+          artifacts: "dist/*, VERSION"
