@@ -10,6 +10,7 @@ a = Analysis(
     datas=[
         ('llamate/data/model_aliases.py', 'llamate/data'),  # Include model aliases data
         (certifi.where(), 'certifi'),
+        ('VERSION', '.'), # Include the VERSION file at the root of the bundle
     ],
     hiddenimports=[
         'llamate.cli.commands.config',

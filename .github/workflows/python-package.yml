@@ -29,6 +29,20 @@ jobs:
       - name: Test with pytest
         run: |
           pytest tests
+      - name: Generate Version File
+        id: get_version
+        run: |
+          git fetch --tags
+          latest_tag=$(git tag | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          if [ -z "$latest_tag" ]; then
+            echo "v0.1.0" > VERSION
+          else
+            major=$(echo $latest_tag | cut -d. -f1 | tr -d 'v')
+            minor=$(echo $latest_tag | cut -d. -f2)
+            patch=$(echo $latest_tag | cut -d. -f3)
+            next_patch=$((patch + 1))
+            echo "v$major.$minor.$next_patch" > VERSION
+          fi
       - name: Package with PyInstaller
         run: |
           pip install pyinstaller
@@ -37,7 +51,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: llamate # Artifact containing the compiled binary
-          path: dist/ # Uploads the contents of the dist/ directory (e.g., dist/llamate)
+          path: |
+            dist/
+            VERSION # Uploads the contents of the dist/ directory (e.g., dist/llamate)
           if-no-files-found: error
 
   release:
@@ -54,6 +70,8 @@ jobs:
       - name: Get Latest Tag
         id: get_latest_tag
         run: |
+          # The version is now generated in the build step and included in the artifact.
+          # This step is kept for consistency with the release action's tag generation.
           git fetch --tags
           latest_tag=$(git tag | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
           if [ -z "$latest_tag" ]; then

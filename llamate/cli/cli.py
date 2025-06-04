@@ -5,6 +5,7 @@ from typing import List, Optional
 
 from .. import constants
 from ..core import config
+from ..core.version import get_version
 from .commands import config as config_commands
 from .commands import init as init_commands
 from .commands import model as model_commands
@@ -14,6 +15,7 @@ from ..data.model_aliases import MODEL_ALIASES
 def create_parser() -> argparse.ArgumentParser:
     """Create the command-line argument parser."""
     parser = argparse.ArgumentParser(prog="llamate", description="Simple model management for llama-swap")
+    parser.add_argument('-V', '--version', action='version', version=f'llamate {get_version()}')
     subparsers = parser.add_subparsers(dest='command', required=False)
 
     # Initialize command
