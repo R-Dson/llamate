@@ -38,7 +38,7 @@ def init_command(args) -> None:
         
         # Download and install llama-swap
         print("\nDownloading llama-swap...")
-        llama_swap_path = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-swappo/releases/latest', args.arch)
+        llama_swap_path = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest', args.arch)
         download.extract_binary(llama_swap_path, bin_dir)
         llama_swap_path.unlink(missing_ok=True)
         extracted_path = bin_dir / "llama-swap"
