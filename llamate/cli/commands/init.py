@@ -1,8 +1,8 @@
 """Initialization command implementation."""
 from pathlib import Path
 
-from ...core import config
-from ...services import llama_swap
+from ...core import config, download
+from ...services import llama_swap, llama_server
 
 def init_command(args) -> None:
     """Initialize llamate.
@@ -14,12 +14,8 @@ def init_command(args) -> None:
     if first_run:
         print("Welcome to llamate! 🦙\n")
         print("This appears to be your first run. llamate will:")
-        print("1. Configure your llama-server path")
-        print("2. Create configuration directory at ~/.config/llamate")
-        print("3. Download the llama-swap binary\n")
-        print("You'll need:")
-        print("- A working llama.cpp server installation")
-        print("- The full path to your llama-server binary\n")
+        print("1. Create configuration directory at ~/.config/llamate")
+        print("2. Download llama-server and llama-swap binaries\n")
         print("For more information on llama-server, visit: https://github.com/ggerganov/llama.cpp\n")
 
     # Create required directories
@@ -28,49 +24,29 @@ def init_command(args) -> None:
     config.constants.MODELS_DIR.mkdir(exist_ok=True, parents=True)
     config.constants.GGUFS_DIR.mkdir(exist_ok=True, parents=True)
     
-    # Always prompt for llama-server path
-    while True:
-        current_path = global_config.get('llama_server_path', 'not set')
-        print(f"\nCurrent llama-server path: {current_path}")
-        new_path = input("Enter the full path to your llama-server binary: ").strip()
-        
-        if not new_path:
-            print("Error: llama-server path cannot be empty.")
-            continue
-            
-        path_obj = Path(new_path)
-        
-        if not path_obj.exists():
-            print(f"Warning: Path '{new_path}' does not exist.")
-            confirm = input("Do you want to use this path anyway? (y/N): ").lower()
-            if confirm != 'y':
-                continue
-        
-        if path_obj.exists() and not path_obj.is_file():
-            print(f"Error: '{new_path}' is not a file.")
-            continue
-        
-        global_config['llama_server_path'] = str(path_obj)
-        config.save_global_config(global_config)
-        if first_run:
-            print("\nInitialization complete!")
-        else:
-            print(f"\nllama-server path set to: {new_path}")
-        break
-
     bin_dir = config.constants.LLAMATE_HOME / "bin"
     bin_dir.mkdir(exist_ok=True)
     
     try:
-        # Download and extract binary
-        print("\nDownloading llama-swap binary...")
-        archive = llama_swap.download_binary(bin_dir, args.arch)
+        # Download and install llama-server
+        print("\nDownloading llama-server...")
+        server_path = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest', args.arch)
+        server_path.chmod(0o755)  # Make executable
+        global_config['llama_server_path'] = str(server_path)
+        config.save_global_config(global_config)
+        print(f"llama-server installed at: {server_path}")
         
-        # Extract to bin_dir
-        llama_swap.extract_binary(archive, bin_dir)
-        archive.unlink(missing_ok=True)
+        # Download and install llama-swap
+        print("\nDownloading llama-swap...")
+        llama_swap_path = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest', args.arch)
+        download.extract_binary(llama_swap_path, bin_dir)
+        llama_swap_path.unlink(missing_ok=True)
+        extracted_path = bin_dir / "llama-swap"
+        if extracted_path.exists():
+            extracted_path.chmod(0o755)  # Make executable
+        print(f"llama-swap installed at: {extracted_path}")
+        print("llama-swap installed successfully")
         
-        print("\nllama-swap installed successfully")
         print("\nInitialization complete! You can now:")
         print("1. Add models:    llamate add llama3:8b")
         print("2. Pull models:   llamate pull llama3:8b")
@@ -78,6 +54,7 @@ def init_command(args) -> None:
         print("4. Serve models:  llamate serve")
         
     except Exception as e:
-        print(f"\nWarning: Failed to download llama-swap: {e}")
-        print("You may need to manually set 'llama_server_path' in config if the update failed.")
+        print(f"\nWarning: Initialization failed: {e}")
+        if first_run:
+            print("You may need to manually set 'llama_server_path' in config if the download failed.")
         raise

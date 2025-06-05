@@ -82,3 +82,11 @@ def detect_gpu() -> Tuple[bool, Optional[int]]:
         pass
 
     return False, None
+
+def get_llama_server_bin_name() -> str:
+    """Get the platform-specific llama-server binary name.
+    
+    Returns:
+        str: 'llama-server.exe' on Windows, 'llama-server' elsewhere
+    """
+    return "llama-server.exe" if platform.system() == "Windows" else "llama-server"

@@ -59,8 +59,8 @@ def mock_download(tmp_path):
     with (
         patch('llamate.core.config.load_global_config', return_value=mock_global_config) as mock_load_config,
         patch('llamate.core.config.save_global_config') as mock_save_config,
-        patch('llamate.services.llama_swap.download_binary', return_value=tmp_path / "mock_archive.tar.gz") as mock_download_binary,
-        patch('llamate.services.llama_swap.extract_binary') as mock_extract,
+        patch('llamate.core.download.download_binary', return_value=tmp_path / "mock_archive.tar.gz") as mock_download_binary,
+        patch('llamate.core.download.extract_binary') as mock_extract,
         patch('llamate.constants.LLAMATE_HOME', tmp_path / ".config" / "llamate"),
         patch('llamate.constants.MODELS_DIR', tmp_path / ".config" / "llamate" / "models"),
         patch('llamate.constants.GGUFS_DIR', tmp_path / ".config" / "llamate" / "ggufs"),

@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - 'README.md'
       - '*.md'
+      - 'llamate/data/model_aliases.py'
 
 jobs:
   build:
