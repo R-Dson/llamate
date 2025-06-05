@@ -1,5 +1,6 @@
 """Tests for the init command."""
 import pytest
+from unittest.mock import call
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from io import StringIO
@@ -42,8 +43,8 @@ def mock_init_command(tmp_path):
     with (
         patch('llamate.core.config.load_global_config', return_value=mock_global_config) as mock_load_config,
         patch('llamate.core.config.save_global_config') as mock_save_config,
-        patch('llamate.services.llama_swap.download_binary', return_value=tmp_path / "mock_archive.tar.gz") as mock_download,
-        patch('llamate.services.llama_swap.extract_binary') as mock_extract,
+        patch('llamate.core.download.download_binary', return_value=tmp_path / "mock_archive.tar.gz") as mock_download,
+        patch('llamate.core.download.extract_binary') as mock_extract,
         patch('llamate.constants.LLAMATE_HOME', tmp_path / ".config" / "llamate"),
         patch('llamate.constants.MODELS_DIR', tmp_path / ".config" / "llamate" / "models"),
         patch('llamate.constants.GGUFS_DIR', tmp_path / ".config" / "llamate" / "ggufs")
@@ -53,6 +54,13 @@ def mock_init_command(tmp_path):
         if constants.LLAMATE_HOME.exists():
             import shutil
             shutil.rmtree(constants.LLAMATE_HOME)
+            
+        # Create mock archive file that download_binary would return
+        mock_archive = tmp_path / "mock_archive.tar.gz"
+        mock_archive.touch()
+        
+        # Update mock_download to return the created file
+        mock_download.return_value = mock_archive
 
         yield {
             "mock_load_config": mock_load_config,
@@ -60,7 +68,8 @@ def mock_init_command(tmp_path):
             "mock_download": mock_download,
             "mock_extract": mock_extract,
             "llamate_home": constants.LLAMATE_HOME,
-            "tmp_path": tmp_path
+            "tmp_path": tmp_path,
+            "mock_archive": mock_archive
         }
 
 def test_init_command_first_run_success(mock_init_command, mock_stdout):
@@ -81,10 +90,16 @@ def test_init_command_first_run_success(mock_init_command, mock_stdout):
     mocks["mock_load_config"].assert_called_once()
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
-    assert saved_config["llama_server_path"] == mock_llama_server_path
+    # Should be the downloaded path, not the user input
+    assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
 
     # Assert download and extract were called
-    mocks["mock_download"].assert_called_once_with(mocks["llamate_home"] / "bin", None)
+    assert mocks["mock_download"].call_count == 2
+    llama_server_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest', None)
+    llama_swap_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-swappo/releases/latest', None)
+    assert llama_server_call in mocks["mock_download"].call_args_list
+    assert llama_swap_call in mocks["mock_download"].call_args_list
+    mocks["mock_extract"].assert_called_once_with(mocks["mock_archive"], mocks["llamate_home"] / "bin")
     mocks["mock_extract"].assert_called_once_with(mocks["tmp_path"] / "mock_archive.tar.gz", mocks["llamate_home"] / "bin")
 
     # Assert success messages were printed (basic check)
@@ -111,10 +126,16 @@ def test_init_command_already_initialized(mock_init_command, mock_stdout):
     mocks["mock_load_config"].assert_called_once()
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
-    assert saved_config["llama_server_path"] == mock_llama_server_path
+    # Should be the downloaded path, not the user input
+    assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
 
     # Assert download and extract were called (should still happen for updates)
-    mocks["mock_download"].assert_called_once_with(mocks["llamate_home"] / "bin", None)
+    assert mocks["mock_download"].call_count == 2
+    llama_server_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest', None)
+    llama_swap_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-swappo/releases/latest', None)
+    assert llama_server_call in mocks["mock_download"].call_args_list
+    assert llama_swap_call in mocks["mock_download"].call_args_list
+    mocks["mock_extract"].assert_called_once_with(mocks["mock_archive"], mocks["llamate_home"] / "bin")
     mocks["mock_extract"].assert_called_once_with(mocks["tmp_path"] / "mock_archive.tar.gz", mocks["llamate_home"] / "bin")
 
     # Assert welcome message is NOT printed
@@ -132,11 +153,12 @@ def test_init_command_empty_path_input(mock_init_command, mock_stdout):
     # Assert config was saved with the correct path after the second input
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
-    assert saved_config["llama_server_path"] == mock_llama_server_path
+    # Should be the downloaded path, not the user input
+    assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
 
-    # Assert error message for empty path was printed
+    # Output should contain success messages
     output = mock_stdout.getvalue()
-    assert "Error: llama-server path cannot be empty." in output
+    assert "Initialization complete!" in output
 
 def test_init_command_non_existent_path_confirm(mock_init_command, mock_stdout):
     """Test init_command with non-existent path and user confirms"""
@@ -148,12 +170,12 @@ def test_init_command_non_existent_path_confirm(mock_init_command, mock_stdout):
         # Assert config was saved with the non-existent path
         mocks["mock_save_config"].assert_called_once()
         saved_config = mocks["mock_save_config"].call_args[0][0]
-        assert saved_config["llama_server_path"] == mock_llama_server_path
+        # Should be the downloaded path, not the user input
+        assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
 
-    # Assert warning and confirmation prompt were printed
+    # Output should contain success messages
     output = mock_stdout.getvalue()
-    assert f"Warning: Path '{mock_llama_server_path}' does not exist." in output
-    assert "Do you want to use this path anyway? (y/N):" in output
+    assert "Initialization complete!" in output
 
 def test_init_command_non_existent_path_deny_then_valid(mock_init_command, mock_stdout):
     """Test init_command with non-existent path, user denies, then enters valid path"""
@@ -166,13 +188,12 @@ def test_init_command_non_existent_path_deny_then_valid(mock_init_command, mock_
     # Assert config was saved with the valid path
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
-    assert saved_config["llama_server_path"] == valid_path
+    # Should be the downloaded path, not the user input
+    assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
 
-    # Assert warning and confirmation prompt were printed, and then the prompt for path again
+    # Output should contain success messages
     output = mock_stdout.getvalue()
-    assert f"Warning: Path '{non_existent_path}' does not exist." in output
-    assert "Do you want to use this path anyway? (y/N):" in output
-    assert "Enter the full path to your llama-server binary:" in output # Should prompt again
+    assert "Initialization complete!" in output
 
 def test_init_command_path_is_directory(mock_init_command, mock_stdout):
     """Test init_command when the provided path is a directory"""
@@ -186,12 +207,12 @@ def test_init_command_path_is_directory(mock_init_command, mock_stdout):
     # Assert config was saved with the valid path
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
-    assert saved_config["llama_server_path"] == valid_path
+    # Should be the downloaded path, not the user input
+    assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
 
-    # Assert error message for directory was printed
+    # Output should contain success messages
     output = mock_stdout.getvalue()
-    expected_error_message = f"Error: '{directory_path}' is not a file."
-    assert expected_error_message in output
+    assert "Initialization complete!" in output
 
 def test_init_command_download_failure(mock_init_command, mock_stdout):
     """Test init_command when download_binary fails"""
@@ -209,7 +230,8 @@ def test_init_command_download_failure(mock_init_command, mock_stdout):
     assert mocks["llamate_home"].exists()
     assert constants.MODELS_DIR.exists()
     assert constants.GGUFS_DIR.exists()
-    mocks["mock_save_config"].assert_called_once()
+    # For download failure, config should not be saved
+    mocks["mock_save_config"].assert_not_called()
 
     # Assert download was called, but extract was not
     mocks["mock_download"].assert_called_once()
@@ -217,4 +239,5 @@ def test_init_command_download_failure(mock_init_command, mock_stdout):
 
     # Assert warning message was printed
     output = mock_stdout.getvalue()
-    assert "Warning: Failed to download llama-swap: Download failed" in output
+    assert "Warning: Initialization failed: Download failed" in output
+    assert "You may need to manually set 'llama_server_path' in config" in output

@@ -9,6 +9,7 @@ import shutil
 
 from llamate.services import llama_swap
 from llamate.core import config
+from llamate.core.download import download_binary, extract_binary
 
 @pytest.fixture
 def mock_platform_info():
@@ -74,7 +75,7 @@ def test_download_binary_success(mock_get, tmp_path, mock_platform_info, mock_do
     mock_get.return_value = mock_response
 
     with patch('urllib.request.urlopen', return_value=mock_get.return_value):
-        dest_file = llama_swap.download_binary(tmp_path)
+        dest_file = download_binary(tmp_path, "https://api.example.com/releases/latest")
 
     assert dest_file == tmp_path / "llama-swap_linux_amd64.tar.gz"
     mock_download.assert_called_once_with(
@@ -97,7 +98,7 @@ def test_download_binary_arch_override(mock_get, tmp_path, mock_platform_info, m
     mock_get.return_value = mock_response
 
     with patch('urllib.request.urlopen', return_value=mock_get.return_value):
-        dest_file = llama_swap.download_binary(tmp_path, arch_override="arm64")
+        dest_file = download_binary(tmp_path, "https://api.example.com/releases/latest", arch_override="arm64")
 
     # Updated assertion to check for the arm64 filename
     assert dest_file == tmp_path / "llama-swap_linux_arm64.tar.gz"
@@ -116,13 +117,13 @@ def test_download_binary_no_matching_asset(mock_get, tmp_path, mock_platform_inf
 
     with patch('urllib.request.urlopen', return_value=mock_get.return_value):
         with pytest.raises(RuntimeError, match=r"No asset found for linux/amd64"):
-            llama_swap.download_binary(tmp_path)
+            download_binary(tmp_path, "https://api.example.com/releases/latest")
 
 def test_download_binary_github_api_error(tmp_path, mock_platform_info, mock_download):
     """Test binary download when GitHub API request fails."""
     with patch('urllib.request.urlopen', side_effect=urllib.error.URLError("API error")):
         with pytest.raises(RuntimeError, match=r"Failed to get release info \(Network error\): .*API error"):
-            llama_swap.download_binary(tmp_path)
+            download_binary(tmp_path, "https://api.example.com/releases/latest")
 
 def test_extract_binary_zip(tmp_path):
     """Test extracting binary from zip archive."""
@@ -134,7 +135,7 @@ def test_extract_binary_zip(tmp_path):
 
     # Create test zip file
     with patch('zipfile.ZipFile') as mock_zip:
-        llama_swap.extract_binary(archive, dest_dir)
+        extract_binary(archive, dest_dir)
         mock_zip.assert_called_once_with(archive, 'r')
         mock_zip.return_value.__enter__.return_value.extractall.assert_called_once_with(dest_dir)
 
@@ -148,7 +149,7 @@ def test_extract_binary_targz(tmp_path):
 
     # Create test tar.gz file
     with patch('tarfile.open') as mock_tar:
-        llama_swap.extract_binary(archive, dest_dir)
+        extract_binary(archive, dest_dir)
         mock_tar.assert_called_once_with(archive, 'r:gz')
         mock_tar.return_value.__enter__.return_value.extractall.assert_called_once_with(dest_dir)
 
