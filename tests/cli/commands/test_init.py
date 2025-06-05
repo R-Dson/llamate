@@ -96,7 +96,7 @@ def test_init_command_first_run_success(mock_init_command, mock_stdout):
     # Assert download and extract were called
     assert mocks["mock_download"].call_count == 2
     llama_server_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest', None)
-    llama_swap_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-swappo/releases/latest', None)
+    llama_swap_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest', None)
     assert llama_server_call in mocks["mock_download"].call_args_list
     assert llama_swap_call in mocks["mock_download"].call_args_list
     mocks["mock_extract"].assert_called_once_with(mocks["mock_archive"], mocks["llamate_home"] / "bin")
@@ -132,7 +132,7 @@ def test_init_command_already_initialized(mock_init_command, mock_stdout):
     # Assert download and extract were called (should still happen for updates)
     assert mocks["mock_download"].call_count == 2
     llama_server_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest', None)
-    llama_swap_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-swappo/releases/latest', None)
+    llama_swap_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest', None)
     assert llama_server_call in mocks["mock_download"].call_args_list
     assert llama_swap_call in mocks["mock_download"].call_args_list
     mocks["mock_extract"].assert_called_once_with(mocks["mock_archive"], mocks["llamate_home"] / "bin")
