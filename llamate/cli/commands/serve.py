@@ -34,7 +34,12 @@ def serve_command(args) -> None:
     
     # Add the listen port from global config
     listen_port = global_config.get("llama_swap_listen_port", config.constants.LLAMA_SWAP_DEFAULT_PORT)
-    cmd_list.extend(["--listen", str(listen_port)])
+    host_port = None # TODO
+    if host_port is None:
+        listen_port = ":" + str(listen_port)
+    else:
+        listen_port = f"{host_port}:{listen_port}"
+    cmd_list.extend(["--listen", listen_port])
 
     # Add any additional arguments after 'serve'
     cmd_list.extend(sys.argv[2:])
