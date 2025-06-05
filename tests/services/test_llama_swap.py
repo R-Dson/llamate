@@ -157,7 +157,7 @@ def test_save_llama_swap_config(mock_load_config, tmp_path):
     """Test saving llama-swap configuration file."""
     models_dir = tmp_path / "models"
     models_dir.mkdir()
-    config_file = tmp_path / "llamate.yaml"
+    config_file = tmp_path / "config.yaml"
 
     # Create a mock model config file for the test to find
     (models_dir / "test_model.yaml").touch()
@@ -187,6 +187,7 @@ def test_save_llama_swap_config(mock_load_config, tmp_path):
 
     with patch('llamate.core.config.constants.MODELS_DIR', models_dir), \
          patch('llamate.core.config.constants.LLAMATE_CONFIG_FILE', config_file), \
+         patch('llamate.services.llama_swap.config.constants.LLAMA_SWAP_CONFIG_FILE', tmp_path / "config.yaml"), \
          patch('llamate.core.config.load_model_config', side_effect=lambda name: mock_model_config[name]), \
          patch('llamate.core.config.load_global_config', return_value=mock_global_config):
 
@@ -194,7 +195,7 @@ def test_save_llama_swap_config(mock_load_config, tmp_path):
         llama_swap.save_llama_swap_config()
 
         # Assert that the config file exists
-        assert config_file.exists()
+        assert (tmp_path / "config.yaml").exists()
         with open(config_file) as f:
             saved_config = yaml.safe_load(f)
 

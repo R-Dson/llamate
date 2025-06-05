@@ -119,6 +119,7 @@ def save_llama_swap_config() -> None:
     # Generate and save config
     swap_config = generate_config(models)
     if swap_config:
+        config.constants.LLAMA_SWAP_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True) # Ensure the directory exists
         with open(config.constants.LLAMA_SWAP_CONFIG_FILE, 'w') as f:
             yaml.dump(swap_config, f, indent=2)
 

@@ -16,7 +16,8 @@ def mock_constants(tmp_path):
          patch('llamate.constants.GGUFS_DIR', tmp_path / ".config" / "llamate" / "ggufs"), \
          patch('llamate.constants.DEFAULT_CONFIG', {
              "llama_server_path": "",
-             "ggufs_storage_path": ""
+             "ggufs_storage_path": "",
+             "llama_swap_listen_port": constants.LLAMA_SWAP_DEFAULT_PORT
          }):
         yield tmp_path
 
@@ -61,7 +62,8 @@ def test_load_global_config_existing(mock_constants):
         yaml.dump(existing_config, f)
 
     global_config = config.load_global_config()
-    assert global_config == existing_config
+    expected_config = {**constants.DEFAULT_CONFIG, **existing_config}
+    assert global_config == expected_config
 
 def test_save_global_config(mock_constants):
     """Test saving global config"""
