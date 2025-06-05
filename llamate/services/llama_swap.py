@@ -119,12 +119,13 @@ def save_llama_swap_config() -> None:
     # Generate and save config
     swap_config = generate_config(models)
     if swap_config:
-        with open(config.constants.LLAMATE_CONFIG_FILE, 'w') as f:
+        config.constants.LLAMA_SWAP_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True) # Ensure the directory exists
+        with open(config.constants.LLAMA_SWAP_CONFIG_FILE, 'w') as f:
             yaml.dump(swap_config, f, indent=2)
 
 def load_config() -> Dict[str, Any]:
     """Load the llama-swap compatible config file."""
-    config_file = config.constants.LLAMATE_CONFIG_FILE
+    config_file = config.constants.LLAMA_SWAP_CONFIG_FILE
     if not config_file.exists():
         return {}
     try:
