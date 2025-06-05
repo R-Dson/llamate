@@ -27,19 +27,14 @@ def serve_command(args) -> None:
 
     # Ensure the config file is up-to-date
     llama_swap.save_llama_swap_config()
-    print(f"Generated llama-swap config at {config.constants.LLAMATE_CONFIG_FILE}")
+    print(f"Generated llama-swap config at {config.constants.LLAMA_SWAP_CONFIG_FILE}")
 
     # Build the command
-    cmd_list = [str(swap_path), "--config", str(config.constants.LLAMATE_CONFIG_FILE)]
+    cmd_list = [str(swap_path), "--config", str(config.constants.LLAMA_SWAP_CONFIG_FILE)]
     
     # Add the listen port from global config
     listen_port = global_config.get("llama_swap_listen_port", config.constants.LLAMA_SWAP_DEFAULT_PORT)
-    host_port = None # TODO
-    if host_port is None:
-        listen_port = ":" + str(listen_port)
-    else:
-        listen_port = f"{host_port}:{listen_port}"
-    cmd_list.extend(["--listen", listen_port])
+    cmd_list.extend(["--listen", str(listen_port)])
 
     # Add any additional arguments after 'serve'
     cmd_list.extend(sys.argv[2:])

@@ -11,12 +11,13 @@ from llamate import constants
 @pytest.fixture
 def mock_constants(tmp_path):
     with patch('llamate.constants.LLAMATE_HOME', tmp_path / ".config" / "llamate"), \
-         patch('llamate.constants.LLAMATE_CONFIG_FILE', tmp_path / ".config" / "llamate" / "config.yaml"), \
+         patch('llamate.constants.LLAMATE_CONFIG_FILE', tmp_path / ".config" / "llamate" / "llamate.yaml"), \
          patch('llamate.constants.MODELS_DIR', tmp_path / ".config" / "llamate" / "models"), \
          patch('llamate.constants.GGUFS_DIR', tmp_path / ".config" / "llamate" / "ggufs"), \
          patch('llamate.constants.DEFAULT_CONFIG', {
              "llama_server_path": "",
-             "ggufs_storage_path": ""
+             "ggufs_storage_path": "",
+             "llama_swap_listen_port": constants.LLAMA_SWAP_DEFAULT_PORT
          }):
         yield tmp_path
 
@@ -31,7 +32,7 @@ def test_init_paths_default(mock_constants):
     config.init_paths()
 
     assert constants.LLAMATE_HOME == Path.home() / ".config" / "llamate"
-    assert constants.LLAMATE_CONFIG_FILE == Path.home() / ".config" / "llamate" / "config.yaml"
+    assert constants.LLAMATE_CONFIG_FILE == Path.home() / ".config" / "llamate" / "llamate.yaml"
     assert constants.MODELS_DIR == Path.home() / ".config" / "llamate" / "models"
     assert constants.GGUFS_DIR == Path.home() / ".config" / "llamate" / "ggufs"
     assert constants.DEFAULT_CONFIG["ggufs_storage_path"] == str(constants.GGUFS_DIR)
@@ -42,7 +43,7 @@ def test_init_paths_custom(mock_constants):
     config.init_paths(custom_path)
 
     assert constants.LLAMATE_HOME == custom_path
-    assert constants.LLAMATE_CONFIG_FILE == custom_path / "config.yaml"
+    assert constants.LLAMATE_CONFIG_FILE == custom_path / "llamate.yaml"
     assert constants.MODELS_DIR == custom_path / "models"
     assert constants.GGUFS_DIR == custom_path / "ggufs"
     assert constants.DEFAULT_CONFIG["ggufs_storage_path"] == str(constants.GGUFS_DIR)
@@ -61,7 +62,8 @@ def test_load_global_config_existing(mock_constants):
         yaml.dump(existing_config, f)
 
     global_config = config.load_global_config()
-    assert global_config == existing_config
+    expected_config = {**constants.DEFAULT_CONFIG, **existing_config}
+    assert global_config == expected_config
 
 def test_save_global_config(mock_constants):
     """Test saving global config"""

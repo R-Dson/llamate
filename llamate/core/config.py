@@ -29,7 +29,8 @@ def init_paths(base_path: Optional[Path] = None) -> None:
         raise ValueError(f"Base path {base_path} does not exist and cannot be created")
     
     constants.LLAMATE_HOME = base_path or Path.home() / ".config" / "llamate"
-    constants.LLAMATE_CONFIG_FILE = constants.LLAMATE_HOME / "config.yaml"
+    constants.LLAMATE_CONFIG_FILE = constants.LLAMATE_HOME / "llamate.yaml"
+    constants.LLAMA_SWAP_CONFIG_FILE = constants.LLAMATE_HOME / "config.yaml"
     constants.MODELS_DIR = constants.LLAMATE_HOME / "models"
     constants.GGUFS_DIR = constants.LLAMATE_HOME / "ggufs"
     constants.DEFAULT_CONFIG["ggufs_storage_path"] = str(constants.GGUFS_DIR)
@@ -46,14 +47,19 @@ def _ensure_config_dir() -> None:
         raise RuntimeError(f"Failed to create config directory {constants.LLAMATE_HOME}: {e}")
 
 def load_global_config() -> Dict[str, Any]:
-    """Load global configuration from YAML file."""
+    """Load global configuration from YAML file, merging with defaults."""
+    default_config = constants.DEFAULT_CONFIG.copy()
+    
     if not constants.LLAMATE_CONFIG_FILE.exists():
-        return constants.DEFAULT_CONFIG.copy()
+        return default_config
         
     try:
         with open(constants.LLAMATE_CONFIG_FILE, 'r') as f:
             user_config = yaml.safe_load(f) or {}
-            return user_config  # Return user config directly without merging with defaults
+            
+            # Merge user config with defaults
+            merged_config = {**default_config, **user_config}
+            return merged_config
     except yaml.YAMLError as e:
         raise RuntimeError(f"Failed to load config file {constants.LLAMATE_CONFIG_FILE}: {e}")
 

@@ -6,11 +6,14 @@ LLAMATE_HOME = None
 LLAMATE_CONFIG_FILE = None
 MODELS_DIR = None
 GGUFS_DIR = None
+LLAMA_SWAP_CONFIG_FILE = None # Added for consistency, though it's set in config.py
+LLAMA_SWAP_DEFAULT_PORT = 11434
 
 # Default configuration
 DEFAULT_CONFIG = {
     "llama_server_path": "",
-    "ggufs_storage_path": ""  # Set during initialization
+    "ggufs_storage_path": "",  # Set during initialization
+    "llama_swap_listen_port": LLAMA_SWAP_DEFAULT_PORT
 }
 
 DEFAULT_MODEL_CONFIG = {
