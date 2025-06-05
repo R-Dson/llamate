@@ -11,7 +11,7 @@ from llamate import constants
 @pytest.fixture
 def mock_constants(tmp_path):
     with patch('llamate.constants.LLAMATE_HOME', tmp_path / ".config" / "llamate"), \
-         patch('llamate.constants.LLAMATE_CONFIG_FILE', tmp_path / ".config" / "llamate" / "config.yaml"), \
+         patch('llamate.constants.LLAMATE_CONFIG_FILE', tmp_path / ".config" / "llamate" / "llamate.yaml"), \
          patch('llamate.constants.MODELS_DIR', tmp_path / ".config" / "llamate" / "models"), \
          patch('llamate.constants.GGUFS_DIR', tmp_path / ".config" / "llamate" / "ggufs"), \
          patch('llamate.constants.DEFAULT_CONFIG', {
@@ -31,7 +31,7 @@ def test_init_paths_default(mock_constants):
     config.init_paths()
 
     assert constants.LLAMATE_HOME == Path.home() / ".config" / "llamate"
-    assert constants.LLAMATE_CONFIG_FILE == Path.home() / ".config" / "llamate" / "config.yaml"
+    assert constants.LLAMATE_CONFIG_FILE == Path.home() / ".config" / "llamate" / "llamate.yaml"
     assert constants.MODELS_DIR == Path.home() / ".config" / "llamate" / "models"
     assert constants.GGUFS_DIR == Path.home() / ".config" / "llamate" / "ggufs"
     assert constants.DEFAULT_CONFIG["ggufs_storage_path"] == str(constants.GGUFS_DIR)
@@ -42,7 +42,7 @@ def test_init_paths_custom(mock_constants):
     config.init_paths(custom_path)
 
     assert constants.LLAMATE_HOME == custom_path
-    assert constants.LLAMATE_CONFIG_FILE == custom_path / "config.yaml"
+    assert constants.LLAMATE_CONFIG_FILE == custom_path / "llamate.yaml"
     assert constants.MODELS_DIR == custom_path / "models"
     assert constants.GGUFS_DIR == custom_path / "ggufs"
     assert constants.DEFAULT_CONFIG["ggufs_storage_path"] == str(constants.GGUFS_DIR)

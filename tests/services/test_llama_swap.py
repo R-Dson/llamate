@@ -157,7 +157,7 @@ def test_save_llama_swap_config(mock_load_config, tmp_path):
     """Test saving llama-swap configuration file."""
     models_dir = tmp_path / "models"
     models_dir.mkdir()
-    config_file = tmp_path / "config.yaml"
+    config_file = tmp_path / "llamate.yaml"
 
     # Create a mock model config file for the test to find
     (models_dir / "test_model.yaml").touch()
