@@ -5,30 +5,20 @@ Simple Ollama-like tool for managing and running GGUF format language models.
 llamate streamlines language model management with automated workflows and GPU optimization. It's designed for users who need easy and efficient model handling.
 
 The tool use and downloads the follwing binaries, stored in `~/.config/llamate/bin/`:
-  - [R-Dson/llama-server-compile](https://github.com/R-Dson/llama-server-compile). This repo is used to compile `llama-server`.
-  - [R-Dson/llama-swap](https://github.com/R-Dson/llama-swap). This repo is used to compile llama-swap with Ollama endpoints.
+  - [R-Dson/llama-server-compile](https://github.com/R-Dson/llama-server-compile). This repo is used to compile `llama-server`
+  - [R-Dson/llama-swap](https://github.com/R-Dson/llama-swap). This repo is used to compile `llama-swap` with Ollama endpoints
 
 ## Platform
 The tool only supports Nvidia och Linux currently by default. You can replace the `llama-server` with your own to support your hardware. 
 
 ## Key Features ✨
-- **Model management**:
-  - Add models from Hugging Face Hub or use pre-configured aliases
+  - Add models from Huggingface or use pre-configured aliases or popular models (llama3:8b, qwen3:7b, etc.)
   - Track model configurations and versions
   - Download and store GGUF files
-  - Auto-detect and configure GPU settings
-
-- **Configuration**:
+  - Auto-detect and configure GPU settings (Still testing)
   - Set default inference parameters per model
-  - Configure storage locations
-  - Manage runtime arguments
-  - Pre-configured aliases for popular models (llama2:7b, mistral:7b, etc.)
-
-- **Execution**:
   - Run models using llama-swap server
-  - Pass custom arguments at runtime
-  - Automatic GPU layer optimization
-  - Resume interrupted downloads
+  - Downloads `llama-swap` and `llama-server` automatically
 
 
 ## Quick Start 🚀
@@ -54,7 +44,7 @@ curl -fsSL https://raw.githubusercontent.com/R-Dson/llamate/main/install.sh | ba
 
 ### Setup
 ```bash
-# Initialize environment
+# Initialize `llama-swap` and `llama-server`
 llamate init
 
 # Add a model using pre-configured alias
@@ -93,6 +83,9 @@ llamate serve --port 9090
 ```
 
 > **Note**: The server will serve models based on your configuration. Use `llamate config --set-default` to specify which model to serve by default.
+
+## TODO
+Add the `ollamate run <model name>` command.
 
 ## Configuration Overview ⚙️
 llamate uses YAML configuration files:
