@@ -1,8 +1,15 @@
 # llamate 🌟
 
-Simple command-line tool for managing and running GGUF format language models.
+Simple Ollama-like tool for managing and running GGUF format language models.
 
 llamate streamlines language model management with automated workflows and GPU optimization. It's designed for users who need easy and efficient model handling.
+
+The tool use and downloads the follwing binaries, stored in `~/.config/llamate/bin/`:
+  - [R-Dson/llama-server-compile](https://github.com/R-Dson/llama-server-compile). This repo is used to compile `llama-server`.
+  - [R-Dson/llama-swap](https://github.com/R-Dson/llama-swap). This repo is used to compile llama-swap with Ollama endpoints.
+
+## Platform
+The tool only supports Nvidia och Linux currently by default. You can replace the `llama-server` with your own to support your hardware. 
 
 ## Key Features ✨
 - **Model management**:
@@ -26,13 +33,18 @@ llamate streamlines language model management with automated workflows and GPU o
 
 ## Quick Start 🚀
 
-### Requirements
+<details>
+
+<summary> ### Requirements (Optional if the default llama-server binary does not work) </summary>
+
 1. **Download `llama.cpp`**
    Get the latest version from:
    https://github.com/ggerganov/llama.cpp
 
 2. **Build `llama-server`**
    Follow the build instructions for your platform to create the `llama-server` binary
+
+</details>
 
 ### Installation
 
@@ -64,11 +76,8 @@ llamate serve
 # List configured models
 llamate list
 
-# Set default model
-llamate config --set-default my-model
-
 # Configure model parameters
-llamate config my-model --max-tokens 2048 --temperature 0.7
+llamate set my-model max-tokens=2048 temperature=0.7 n-gpu-layers=24
 
 # Remove a model
 llamate remove old-model
@@ -79,8 +88,8 @@ llamate remove old-model
 # Start server with default settings
 llamate serve
 
-# Custom port and GPU layers
-llamate serve --port 9090 --n-gpu-layers 24
+# Custom port (defaults to 11434)
+llamate serve --port 9090
 ```
 
 > **Note**: The server will serve models based on your configuration. Use `llamate config --set-default` to specify which model to serve by default.
