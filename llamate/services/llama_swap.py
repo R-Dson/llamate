@@ -19,10 +19,9 @@ def save_llama_swap_config() -> None:
     
     # Generate and save config
     swap_config = generate_config(models)
-    if swap_config:
-        config.constants.LLAMA_SWAP_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True) # Ensure the directory exists
-        with open(config.constants.LLAMA_SWAP_CONFIG_FILE, 'w') as f:
-            yaml.dump(swap_config, f, indent=2, width=1000000) # Use a large width to avoid line breaks
+    config.constants.LLAMA_SWAP_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True) # Ensure the directory exists
+    with open(config.constants.LLAMA_SWAP_CONFIG_FILE, 'w') as f:
+        yaml.dump(swap_config, f, indent=2, width=1000000) # Use a large width to avoid line breaks
 
 def load_config() -> Dict[str, Any]:
     """Load the llama-swap compatible config file."""
@@ -104,5 +103,7 @@ def generate_config(model_configs: Dict[str, Any]) -> Dict[str, Any]:
 
     if 'groups' in global_config:
         result['groups'] = global_config['groups']
+    else:
+        result['groups'] = {} # Ensure groups key is always present, even if empty
 
     return result

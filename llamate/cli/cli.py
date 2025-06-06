@@ -9,6 +9,7 @@ from ..core.version import get_version
 from .commands import config as config_commands
 from .commands import init as init_commands
 from .commands import model as model_commands
+from .commands import run as run_commands
 from .commands import serve as serve_commands
 from ..data.model_aliases import MODEL_ALIASES
 
@@ -90,6 +91,11 @@ def create_parser() -> argparse.ArgumentParser:
     # Serve command
     serve_parser = subparsers.add_parser('serve', help='Run the llama-swap server')
     serve_parser.set_defaults(func=serve_commands.serve_command)
+
+    # Run command
+    run_parser = subparsers.add_parser('run', help='Run a model in interactive chat mode')
+    run_parser.add_argument('model_name', help='Name of the model to run')
+    run_parser.set_defaults(func=run_commands.run_command)
 
     # Print command
     print_parser = subparsers.add_parser('print', help='Print the llama-swap config')

@@ -161,12 +161,16 @@ def download_binary(dest_dir: Path, api_url: str, arch_override: str = None) -> 
             name = a.get('name', '')
             if asset_name_fragment in name:
                 # For llama-swappo, require platform/arch in name
-                # For llama-swappo, require platform/arch in name
                 if asset_name_fragment == 'llama-swappo':
                     if os_name in name and arch in name:
                         found_asset = a
                         break
-                # For others (llama-server, llama-swap), simple match
+                # For llama-swap, require platform/arch and archive extension
+                elif asset_name_fragment == 'llama-swap':
+                    if os_name in name and arch in name and ('.tar.gz' in name or '.zip' in name):
+                        found_asset = a
+                        break
+                # For llama-server, simple match
                 else:
                     if asset_name_fragment in name:
                         found_asset = a
@@ -175,7 +179,7 @@ def download_binary(dest_dir: Path, api_url: str, arch_override: str = None) -> 
         if not found_asset:
             available_assets = [a.get('name') for a in assets if a.get('name')]
             error_msg = f"No asset found for {os_name}/{arch} (looking for '{asset_name_fragment}'"
-            if asset_name_fragment == 'llama-swappo':
+            if asset_name_fragment == 'llama-swappo' or asset_name_fragment == 'llama-swap':
                 error_msg += f" with platform '{os_name}' and arch '{arch}'"
             error_msg += f"). Available: {available_assets}"
             raise RuntimeError(error_msg)

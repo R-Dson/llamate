@@ -13,6 +13,7 @@ from .config import (
     config_remove_arg_command,
     handle_set_command
 )
+from .run import run_command
 from .serve import serve_command, print_config_command
 
 __all__ = [
@@ -26,5 +27,6 @@ __all__ = [
     'config_remove_arg_command',
     'handle_set_command',
     'serve_command',
-    'print_config_command'
+    'print_config_command',
+    'run_command'
 ]

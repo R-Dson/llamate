@@ -82,11 +82,14 @@ llamate serve
 llamate serve --port 9090
 ```
 
-> **Note**: The server will serve models based on your configuration. Use `llamate config --set-default` to specify which model to serve by default.
+### Running Models
+```bash
+# Run a model in interactive chat mode
+llamate run my-llama
+```
 
 ## TODO
-Add the `ollamate run <model name>` command.
-Add the `ollamate update` command.
+Add the `llamate update` command.
 
 ## Configuration Overview ⚙️
 llamate uses YAML configuration files:

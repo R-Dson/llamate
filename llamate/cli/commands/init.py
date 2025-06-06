@@ -46,7 +46,7 @@ def init_command(args) -> None:
             extracted_path.chmod(0o755)  # Make executable
         print(f"llama-swap installed at: {extracted_path}")
         print("llama-swap installed successfully")
-        
+
         print("\nInitialization complete! You can now:")
         print("1. Add models:    llamate add llama3:8b")
         print("2. Pull models:   llamate pull llama3:8b")

@@ -7,7 +7,7 @@ import subprocess
 from ...core import config
 from ...services import llama_swap
 
-LLAMA_SWAP_FILE_NAME = "llama-swappo"
+LLAMA_SWAP_FILE_NAME = "llama-swap"
 
 def serve_command(args) -> None:
     """Run the llama-swap server with current configuration."""
