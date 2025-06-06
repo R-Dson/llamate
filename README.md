@@ -86,6 +86,7 @@ llamate serve --port 9090
 
 ## TODO
 Add the `ollamate run <model name>` command.
+Add the `ollamate update` command.
 
 ## Configuration Overview ⚙️
 llamate uses YAML configuration files:
