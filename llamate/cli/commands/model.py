@@ -104,10 +104,19 @@ def model_remove_command(args) -> None:
             config.save_global_config(global_config)
             print(f"Removed aliases for model '{args.model_name}'")
         
+        # Handle GGUF removal
         if args.delete_gguf:
+            # Force delete without prompt when flag is provided
             gguf_path = Path(global_config["ggufs_storage_path"]) / model_config["hf_file"]
             gguf_path.unlink(missing_ok=True)
             print(f"GGUF file '{model_config['hf_file']}' removed.")
+        else:
+            # Prompt user when flag is not provided
+            response = input(f"Do you want to remove the GGUF file '{model_config['hf_file']}'? [y/N]: ").strip().lower()
+            if response in ('y', 'yes'):
+                gguf_path = Path(global_config["ggufs_storage_path"]) / model_config["hf_file"]
+                gguf_path.unlink(missing_ok=True)
+                print(f"GGUF file '{model_config['hf_file']}' removed.")
     except ValueError as e:
         print(f"Error: {e}")
 

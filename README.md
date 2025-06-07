@@ -1,6 +1,6 @@
 # llamate 🌟
 
-Simple Ollama-like tool for managing and running GGUF format language models.
+Simple "Ollama-like" tool for managing and running GGUF format language models.
 
 llamate streamlines language model management with automated workflows and GPU optimization. It's designed for users who need easy and efficient model handling.
 
@@ -70,8 +70,8 @@ llamate serve
 # List configured models
 llamate list
 
-# Configure model parameters
-llamate set my-model max-tokens=2048 temperature=0.7 n-gpu-layers=24
+# Configure model parameters (see https://github.com/ggml-org/llama.cpp/tree/master/tools/server for more settings)
+llamate set my-model ctx-size=32768 temp=0.6 top-p=0.95 min-p=0.05 top-k=40 n-gpu-layers=99
 
 # Remove a model
 llamate remove old-model
