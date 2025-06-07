@@ -75,7 +75,7 @@ def test_download_binary_success(mock_get, tmp_path, mock_platform_info, mock_do
     mock_get.return_value = mock_response
 
     with patch('urllib.request.urlopen', return_value=mock_get.return_value):
-        dest_file = download_binary(tmp_path, "https://api.example.com/releases/latest")
+        dest_file, _ = download_binary(tmp_path, "https://api.example.com/releases/latest")
 
     assert dest_file == tmp_path / "llama-swap_linux_amd64.tar.gz"
     mock_download.assert_called_once_with(
@@ -98,7 +98,7 @@ def test_download_binary_arch_override(mock_get, tmp_path, mock_platform_info, m
     mock_get.return_value = mock_response
 
     with patch('urllib.request.urlopen', return_value=mock_get.return_value):
-        dest_file = download_binary(tmp_path, "https://api.example.com/releases/latest", arch_override="arm64")
+        dest_file, _ = download_binary(tmp_path, "https://api.example.com/releases/latest", arch_override="arm64")
 
     # Updated assertion to check for the arm64 filename
     assert dest_file == tmp_path / "llama-swap_linux_arm64.tar.gz"

@@ -30,15 +30,17 @@ def init_command(args) -> None:
     try:
         # Download and install llama-server
         print("\nDownloading llama-server...")
-        server_path = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest', args.arch)
+        server_path, server_release_sha = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest', args.arch)
         server_path.chmod(0o755)  # Make executable
         global_config['llama_server_path'] = str(server_path)
+        if server_release_sha:
+            global_config['llama_server_installed_sha'] = server_release_sha # Store the SHA
         config.save_global_config(global_config)
-        print(f"llama-server installed at: {server_path}")
+        print(f"llama-server installed at: {server_path} (SHA: {server_release_sha})")
         
         # Download and install llama-swap
         print("\nDownloading llama-swap...")
-        llama_swap_path = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest', args.arch)
+        llama_swap_path, _ = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest', args.arch)
         download.extract_binary(llama_swap_path, bin_dir)
         llama_swap_path.unlink(missing_ok=True)
         extracted_path = bin_dir / "llama-swap"

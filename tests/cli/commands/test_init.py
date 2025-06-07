@@ -59,8 +59,8 @@ def mock_init_command(tmp_path):
         mock_archive = tmp_path / "mock_archive.tar.gz"
         mock_archive.touch()
         
-        # Update mock_download to return the created file
-        mock_download.return_value = mock_archive
+        # Update mock_download to return a tuple (path, sha) to match new return type
+        mock_download.return_value = (mock_archive, None)
 
         yield {
             "mock_load_config": mock_load_config,

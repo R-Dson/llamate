@@ -10,7 +10,9 @@ import requests # Use requests for better HTTP handling
 from pathlib import Path
 from ..core import platform
 import urllib
-
+import ssl
+import certifi
+import re
 
 def format_bytes(size: int) -> str:
     """Convert bytes to human-readable format."""
@@ -116,13 +118,17 @@ def download_file(url: str, destination: Path, resume: bool = True) -> None:
         except OSError:
             pass  # Ignore cleanup errors
 
-def download_binary(dest_dir: Path, api_url: str, arch_override: str = None) -> Path:
+from typing import Tuple # Import Tuple
+
+from typing import Tuple, Optional # Import Optional
+
+def download_binary(dest_dir: Path, api_url: str, arch_override: str = None) -> Tuple[Path, Optional[str]]:
     """Download the llama-swap binary.
     Args:
         dest_dir: Directory to download to
         arch_override: Optional architecture override
     Returns:
-        Path: Path to the downloaded archive
+        Tuple[Path, Optional[str]]: Path to the downloaded archive and the full SHA of the release (or None if not found)
     Raises:
         RuntimeError: If download fails or platform is not supported
     """
@@ -188,7 +194,18 @@ def download_binary(dest_dir: Path, api_url: str, arch_override: str = None) -> 
         download_url = found_asset['browser_download_url']
         dest_file = dest_dir / found_asset['name']
         download_file(download_url, dest_file) # This already uses requests with certifi
-        return dest_file
+        
+        # Extract SHA from the release name or tag_name
+        release_sha = None
+        sha_match = re.search(r'([0-9a-f]{40})', data.get('name', ''))
+        if not sha_match:
+            sha_match = re.search(r'([0-9a-f]{40})', data.get('tag_name', ''))
+        if sha_match:
+            release_sha = sha_match.group(1)
+        else:
+            print(f"Warning: No 40-char SHA found in release name or tag_name for {api_url}")
+        
+        return dest_file, release_sha
 
     except urllib.error.URLError as e: # Catch URLError specifically for network issues
         if isinstance(e.reason, ssl.SSLCertVerificationError):

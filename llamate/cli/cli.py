@@ -11,6 +11,7 @@ from .commands import init as init_commands
 from .commands import model as model_commands
 from .commands import run as run_commands
 from .commands import serve as serve_commands
+from .commands import update as update_commands
 from ..data.model_aliases import MODEL_ALIASES
 
 def create_parser() -> argparse.ArgumentParser:
@@ -91,6 +92,11 @@ def create_parser() -> argparse.ArgumentParser:
     # Serve command
     serve_parser = subparsers.add_parser('serve', help='Run the llama-swap server')
     serve_parser.set_defaults(func=serve_commands.serve_command)
+
+    # Update command
+    update_parser = subparsers.add_parser('update', help='Update llamate CLI, llama-server, and llama-swap')
+    update_parser.add_argument('--arch', help='Override system architecture (amd64, arm64, etc)')
+    update_parser.set_defaults(func=update_commands.update_command)
 
     # Run command
     run_parser = subparsers.add_parser('run', help='Run a model in interactive chat mode')

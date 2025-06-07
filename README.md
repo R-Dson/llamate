@@ -89,7 +89,6 @@ llamate run my-llama
 ```
 
 ## TODO
-Add the `llamate update` command.
 
 ## Configuration Overview ⚙️
 llamate uses YAML configuration files:
