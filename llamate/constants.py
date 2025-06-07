@@ -13,7 +13,8 @@ LLAMA_SWAP_DEFAULT_PORT = 11434
 DEFAULT_CONFIG = {
     "llama_server_path": "",
     "ggufs_storage_path": "",  # Set during initialization
-    "llama_swap_listen_port": LLAMA_SWAP_DEFAULT_PORT
+    "llama_swap_listen_port": LLAMA_SWAP_DEFAULT_PORT,
+    "aliases": {}
 }
 
 DEFAULT_MODEL_CONFIG = {

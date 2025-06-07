@@ -49,6 +49,16 @@ def model_add_command(args) -> None:
     model_data["proxy"] = f"http://127.0.0.1:{port}"
 
     config.save_model_config(model_name, model_data)
+    
+    # Register aliases
+    # 1. If added via pre-configured alias, register that alias
+    if args.hf_spec in MODEL_ALIASES:
+        config.register_alias(args.hf_spec, model_name)
+    
+    # 2. Register custom alias if provided
+    if args.alias:
+        config.register_alias(args.alias, model_name)
+    
     print(f"Model '{model_name}' added successfully.")
 
 def model_list_command(args) -> None:
@@ -57,11 +67,20 @@ def model_list_command(args) -> None:
         print("No models defined")
         return
     
+    global_config = config.load_global_config()
+    aliases = global_config.get("aliases", {})
+    reverse_aliases = {}
+    for alias, model in aliases.items():
+        reverse_aliases.setdefault(model, []).append(alias)
+    
     print("Defined models:")
     for path in config.constants.MODELS_DIR.glob("*.yaml"):
+        model_name = path.stem
         try:
-            model_config = config.load_model_config(path.stem)
-            print(f"  {path.stem}: {model_config['hf_repo']} ({model_config['hf_file']})")
+            model_config = config.load_model_config(model_name)
+            alias_list = reverse_aliases.get(model_name, [])
+            alias_str = ", ".join(alias_list) if alias_list else "(no aliases)"
+            print(f"  {model_name} [aliases: {alias_str}]: {model_config['hf_repo']} ({model_config['hf_file']})")
         except (ValueError, KeyError):
             continue
 
@@ -77,8 +96,16 @@ def model_remove_command(args) -> None:
         model_file.unlink(missing_ok=True)
         print(f"Model '{args.model_name}' definition removed.")
 
+        # Remove any aliases pointing to this model
+        global_config = config.load_global_config()
+        aliases = global_config.get("aliases", {})
+        updated_aliases = {a: m for a, m in aliases.items() if m != args.model_name}
+        if len(updated_aliases) != len(aliases):
+            global_config["aliases"] = updated_aliases
+            config.save_global_config(global_config)
+            print(f"Removed aliases for model '{args.model_name}'")
+        
         if args.delete_gguf:
-            global_config = config.load_global_config()
             gguf_path = Path(global_config["ggufs_storage_path"]) / model_config["hf_file"]
             gguf_path.unlink(missing_ok=True)
             print(f"GGUF file '{model_config['hf_file']}' removed.")

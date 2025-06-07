@@ -6,9 +6,14 @@ import json
 from ...core import config
 from ... import constants
 
+from ...core import config
+
 def run_command(args) -> None:
     """Run a model in interactive chat mode."""
-    model_name = args.model_name
+    # Resolve alias if exists
+    resolved_name = config.resolve_alias(args.model_name)
+    model_name = resolved_name or args.model_name
+    
     global_config = config.load_global_config()
     
     listen_port = global_config.get("llama_swap_listen_port", constants.LLAMA_SWAP_DEFAULT_PORT)

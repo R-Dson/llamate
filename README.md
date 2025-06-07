@@ -23,15 +23,19 @@ The tool only supports Nvidia och Linux currently by default. You can replace th
 
 ## Quick Start 🚀
 
+### Requirements (Optional if the default llama-server binary does not work)
+
+1. Download and install your appropriate drivers, such as CUDA for Nvidia users.
+
 <details>
 
-<summary> ### Requirements (Optional if the default llama-server binary does not work) </summary>
+<summary> Optional steps if the default llama-server binary does not work </summary>
 
-1. **Download `llama.cpp`**
+2. **Download `llama.cpp`**
    Get the latest version from:
    https://github.com/ggerganov/llama.cpp
 
-2. **Build `llama-server`**
+3. **Build `llama-server`**
    Follow the build instructions for your platform to create the `llama-server` binary
 
 </details>
@@ -89,6 +93,8 @@ llamate run my-llama
 ```
 
 ## TODO
+- Print logs with `llamate logs`
+
 
 ## Configuration Overview ⚙️
 llamate uses YAML configuration files:

@@ -125,3 +125,31 @@ def save_model_config(model_name: str, config: Dict[str, Any]) -> None:
             yaml.dump(config, f)
     except (yaml.YAMLError, OSError) as e:
         raise RuntimeError(f"Failed to save model config {model_file}: {e}")
+
+def register_alias(alias: str, model_name: str) -> None:
+    """Register an alias for a model in the global configuration.
+    
+    Args:
+        alias: The alias name to register
+        model_name: The actual model name to map to
+        
+    Raises:
+        RuntimeError: If alias registration fails
+    """
+    global_config = load_global_config()
+    aliases = global_config.get("aliases", {})
+    aliases[alias] = model_name
+    global_config["aliases"] = aliases
+    save_global_config(global_config)
+
+def resolve_alias(alias: str) -> Optional[str]:
+    """Resolve an alias to its corresponding model name.
+    
+    Args:
+        alias: The alias to resolve
+        
+    Returns:
+        The resolved model name if found, otherwise None
+    """
+    global_config = load_global_config()
+    return global_config.get("aliases", {}).get(alias)

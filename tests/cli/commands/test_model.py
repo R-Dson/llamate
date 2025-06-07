@@ -193,7 +193,8 @@ def test_model_remove_command_success(mock_model_commands, capsys):
 
     mocks["mock_load_model_config"].assert_called_once_with(model_name)
     mocks["mock_path_unlink"].assert_called_once() # For the model yaml file
-    mocks["mock_load_global_config"].assert_not_called()
+    mocks["mock_load_global_config"].assert_called_once()
+    mocks["mock_save_global_config"].assert_not_called()  # No aliases to remove in this test
     captured = capsys.readouterr()
     assert f"Model '{model_name}' definition removed." in captured.out
     assert "GGUF file" not in captured.out
@@ -209,7 +210,8 @@ def test_model_remove_command_delete_gguf(mock_model_commands, capsys):
 
     mocks["mock_load_model_config"].assert_called_once_with(model_name)
     assert mocks["mock_path_unlink"].call_count == 2 # For the model yaml and the gguf file
-    mocks["mock_load_global_config"].assert_called_once()
+    mocks["mock_load_global_config"].assert_called()
+    assert mocks["mock_load_global_config"].call_count == 1
     captured = capsys.readouterr()
     assert f"Model '{model_name}' definition removed." in captured.out
     assert f"GGUF file 'test.gguf' removed." in captured.out
