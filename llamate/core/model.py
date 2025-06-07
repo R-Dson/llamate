@@ -2,10 +2,12 @@
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple, Union
 import json
+import re
 from .. import constants
 from . import config
 from . import platform
 from ..data.model_aliases import MODEL_ALIASES
+from ..utils.exceptions import InvalidInputError, ResourceError
 
 def parse_model_alias(alias: str) -> Optional[Dict[str, Any]]:
     """Parse a model alias or HuggingFace repo path.
@@ -15,9 +17,16 @@ def parse_model_alias(alias: str) -> Optional[Dict[str, Any]]:
         
     Returns:
         Optional[Dict[str, Any]]: Model configuration if found, None if not a known alias
+        
+    Raises:
+        InvalidInputError: If alias format is invalid
     """
     if not alias:
         return None
+
+    # Validate alias format
+    if not re.match(r"^[\w\-:]+$", alias):
+        raise InvalidInputError(f"Invalid alias format: '{alias}'. Only alphanumeric, -, :, and _ allowed")
 
     # Check direct alias first
     if alias in MODEL_ALIASES:
@@ -40,30 +49,42 @@ def parse_hf_spec(hf_spec: str) -> Tuple[str, str]:
         Tuple[str, str]: (repo_id, file_path)
         
     Raises:
-        ValueError: If the spec format is invalid
+        InvalidInputError: If the spec format is invalid
     """
     if not hf_spec:
-        raise ValueError(f"Invalid repo spec: {hf_spec}. Use REPO_ID:FILE or HF_URL")
+        raise InvalidInputError("Repository specification cannot be empty")
 
-    if hf_spec.startswith("https://huggingface.co/"):
-        parts = hf_spec.split('/')
-        try:
+    try:
+        if hf_spec.startswith("https://huggingface.co/"):
+            parts = hf_spec.split('/')
             user_index = parts.index("huggingface.co") + 1
             repo_index = user_index + 1
-            file_index = parts.index("resolve") + 2
+            
+            if "resolve" in parts:
+                file_index = parts.index("resolve") + 2
+            elif "blob" in parts:
+                file_index = parts.index("blob") + 2
+            else:
+                raise InvalidInputError("Invalid HuggingFace URL format. Must contain 'resolve' or 'blob' path segment")
+                
             if user_index >= len(parts) or repo_index >= len(parts) or file_index >= len(parts):
-                raise ValueError(f"Invalid repo spec: {hf_spec}. Use REPO_ID:FILE or HF_URL")
+                raise InvalidInputError(f"Invalid URL structure: {hf_spec}")
+                
             return f"{parts[user_index]}/{parts[repo_index]}", '/'.join(parts[file_index:])
-        except (ValueError, IndexError):
-            raise ValueError(f"Invalid repo spec: {hf_spec}. Use REPO_ID:FILE or HF_URL")
 
-    if ':' in hf_spec:
-        repo, file = hf_spec.split(':', 1)
-        if not repo or not file or not all(c.isalnum() or c in "-_/" for c in repo):
-            raise ValueError(f"Invalid repo spec: {hf_spec}. Use REPO_ID:FILE or HF_URL")
-        return repo, file
-    
-    raise ValueError(f"Invalid repo spec: {hf_spec}. Use REPO_ID:FILE or HF_URL")
+        if ':' in hf_spec:
+            repo, file = hf_spec.split(':', 1)
+            if not repo or not file:
+                raise InvalidInputError("Both repository and file must be specified in REPO:FILE format")
+                
+            if not re.match(r"^[\w\-\/\.]+$", repo):
+                raise InvalidInputError(f"Invalid repository format: '{repo}'. Only alphanumeric, ., -, /, and _ allowed")
+                
+            return repo, file
+    except Exception as e:
+        raise InvalidInputError(f"Failed to parse '{hf_spec}': {str(e)}. Format: REPO_ID:FILE or valid HF URL")
+
+    raise InvalidInputError(f"Unrecognized repository specification format: {hf_spec}. Use REPO_ID:FILE or a valid HuggingFace URL")
 
 def _validate_text(text: str, field_name: str, allow_empty: bool = False) -> str:
     """Internal helper to validate text fields.
@@ -77,10 +98,10 @@ def _validate_text(text: str, field_name: str, allow_empty: bool = False) -> str
         str: The validated text
         
     Raises:
-        ValueError: If validation fails
+        InvalidInputError: If validation fails
     """
     if not text and not allow_empty:
-        raise ValueError(f"{field_name} cannot be empty")
+        raise InvalidInputError(f"{field_name} cannot be empty")
     return text.strip()
 
 def validate_model_name(model_name: str) -> str:
@@ -93,12 +114,12 @@ def validate_model_name(model_name: str) -> str:
         str: Sanitized model name
         
     Raises:
-        ValueError: If the model name is invalid
+        InvalidInputError: If the model name is invalid
     """
     model_name = _validate_text(model_name, "Model name")
     if not any(c.isalnum() for c in model_name):
-        raise ValueError("Model name must contain at least one alphanumeric character")
-    return ''.join(c if c.isalnum() or c in "_-:" else '' for c in model_name)
+        raise InvalidInputError("Model name must contain at least one alphanumeric character")
+    return ''.join(c if c.isalnum() or c in "_-:" else '_' for c in model_name)
 
 def validate_args_list(args_list: List[str]) -> Dict[str, str]:
     """Validate model arguments from command line.
@@ -110,7 +131,7 @@ def validate_args_list(args_list: List[str]) -> Dict[str, str]:
         Dict[str, str]: Validated arguments
         
     Raises:
-        ValueError: If any argument is invalid
+        InvalidInputError: If any argument is invalid
     """
     if not args_list:
         return {}
@@ -118,15 +139,15 @@ def validate_args_list(args_list: List[str]) -> Dict[str, str]:
     result = {}
     for arg in args_list:
         if '=' not in arg:
-            raise ValueError(f"Argument '{arg}' is not in KEY=VALUE format")
+            raise InvalidInputError(f"Argument '{arg}' is not in KEY=VALUE format")
         
         key, value = arg.split('=', 1)
         if not key:
-            raise ValueError("Argument key cannot be empty")
+            raise InvalidInputError("Argument key cannot be empty")
             
         key = _validate_text(key, "Argument key")
         if not all(c.isalnum() or c in "-_" for c in key):
-            raise ValueError(f"Invalid argument key format: {key}")
+            raise InvalidInputError(f"Invalid argument key format: {key}. Only alphanumeric, - and _ allowed")
         
         value = _validate_text(value, "Argument value", allow_empty=True)
         result[key] = value
@@ -142,14 +163,20 @@ def configure_gpu(model_config: Dict[str, Any], model_name: str, auto_detect: bo
         
     Returns:
         Dict[str, Any]: Updated model configuration with GPU settings
+        
+    Raises:
+        ResourceError: If GPU detection fails
     """
     if not auto_detect or 'n-gpu-layers' in model_config.get('args', {}):
         return model_config
 
-    has_gpu, suggested_layers = platform.detect_gpu()
-    if has_gpu and suggested_layers:
-        model_config.setdefault('args', {})['n-gpu-layers'] = str(suggested_layers)
-        print(f"Auto-configured n-gpu-layers={suggested_layers} based on detected GPU")
-        print(f"To override: llamate config set {model_name} n-gpu-layers <value>")
+    try:
+        has_gpu, suggested_layers = platform.detect_gpu()
+        if has_gpu and suggested_layers:
+            model_config.setdefault('args', {})['n-gpu-layers'] = str(suggested_layers)
+            print(f"Auto-configured n-gpu-layers={suggested_layers} based on detected GPU")
+            print(f"To override: llamate config set {model_name} n-gpu-layers <value>")
+    except Exception as e:
+        raise ResourceError(f"GPU detection failed: {str(e)}")
 
     return model_config

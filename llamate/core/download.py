@@ -1,3 +1,4 @@
+from typing import Optional
 """Download functionality for llamate."""
 import json
 import shutil
@@ -6,13 +7,13 @@ import tarfile
 import zipfile
 import certifi
 import sys
-import requests # Use requests for better HTTP handling
+import requests
+import re
 from pathlib import Path
+from urllib.parse import urlparse
 from ..core import platform
 import urllib
-import ssl
-import certifi
-import re
+from ..utils.exceptions import InvalidURLError, DownloadError
 
 def format_bytes(size: int) -> str:
     """Convert bytes to human-readable format."""
@@ -23,20 +24,70 @@ def format_bytes(size: int) -> str:
         size /= power
     return f"{size:.1f} TB" # Handle values larger than TB
 
-def download_file(url: str, destination: Path, resume: bool = True) -> None:
+def validate_url(url: str) -> None:
+    """Validate a URL for download.
+    
+    Args:
+        url: URL to validate
+        
+    Raises:
+        InvalidURLError: If URL is invalid
+    """
+    try:
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
+            raise ValueError("Invalid URL structure")
+        if parsed.scheme not in ['http', 'https']:
+            raise ValueError("Unsupported URL scheme")
+        if re.search(r'[^\w\-\.]', parsed.netloc):
+            raise ValueError("Invalid characters in domain")
+    except Exception as e:
+        raise InvalidURLError(f"Invalid URL '{url}': {e}")
+
+def download_file(
+    url: str,
+    destination: Path,
+    resume: bool = True,
+    timeout: int = 30,
+    max_size: Optional[int] = None
+) -> None:
     """Download a file with progress tracking and resume capability.
     
     Args:
         url: The URL to download from
         destination: Path where the file should be saved
         resume: Whether to attempt resuming an interrupted download
+        timeout: Request timeout in seconds
+        max_size: Maximum allowed download size in bytes (None for no limit)
         
     Raises:
-        RuntimeError: If the download fails
+        InvalidURLError: If URL is invalid
+        DownloadError: If download fails
     """
+    # Validate URL before proceeding
+    validate_url(url)
+    
     destination.parent.mkdir(parents=True, exist_ok=True)
     tmp_file = destination.with_suffix(destination.suffix + ".tmp")
     meta_file = destination.with_suffix(destination.suffix + ".meta")
+    
+    # Clean up any existing partial files if not resuming
+    if not resume and tmp_file.exists():
+        tmp_file.unlink()
+    if not resume and meta_file.exists():
+        meta_file.unlink()
+
+    downloaded_bytes = 0
+    if resume and meta_file.exists():
+        try:
+            with open(meta_file, 'r') as f:
+                downloaded_bytes = int(f.read().strip())
+            print(f"Resuming download from {downloaded_bytes} bytes")
+        except (ValueError, IOError) as e:
+            print(f"Warning: Could not read download progress: {e}")
+            downloaded_bytes = 0
+
+    total_downloaded = downloaded_bytes
 
     downloaded_bytes = 0
     if resume and meta_file.exists():
@@ -63,21 +114,25 @@ def download_file(url: str, destination: Path, resume: bool = True) -> None:
             headers=headers,
             stream=True,
             verify=certifi.where(),
-            timeout=30
+            timeout=timeout
         )
-        response.raise_for_status() # Raise an exception for bad status codes
+        response.raise_for_status()
 
         total_size = int(response.headers.get('content-length', 0))
         if total_size == 0 and 'content-range' in response.headers:
-             # Handle case where server returns Content-Range for resumed download
             content_range = response.headers['content-range']
-            import re
             match = re.match(r'bytes \d+-(\d+)/(\d+)', content_range)
             if match:
                 total_size = int(match.group(2)) - downloaded_bytes
 
-        total_size += downloaded_bytes # Add previously downloaded bytes to total size
+        total_size += downloaded_bytes
+        
+        # Check size limits
+        if max_size and total_size > max_size:
+            raise DownloadError(f"File size {total_size} exceeds limit {max_size}")
 
+        mode = 'ab' if resume and downloaded_bytes > 0 else 'wb'
+        
         mode = 'ab' if resume and downloaded_bytes > 0 else 'wb'
         
         with open(tmp_file, mode) as f:
@@ -86,10 +141,14 @@ def download_file(url: str, destination: Path, resume: bool = True) -> None:
                     break
                 f.write(chunk)
                 total_downloaded += len(chunk)
-
+                
+                # Check size during download
+                if max_size and total_downloaded > max_size:
+                    raise DownloadError(f"File size exceeds limit {max_size}")
+                    
                 if total_size > 0:
                     progress = total_downloaded / total_size * 100
-                    print(f"\rDownloading: {format_bytes(total_downloaded)}/{format_bytes(total_size)} ({progress:.1f}%)", 
+                    print(f"\rDownloading: {format_bytes(total_downloaded)}/{format_bytes(total_size)} ({progress:.1f}%)",
                           end='', flush=True)
                 with open(meta_file, 'w') as mf:
                     mf.write(str(total_downloaded))
@@ -97,17 +156,20 @@ def download_file(url: str, destination: Path, resume: bool = True) -> None:
     except requests.exceptions.RequestException as e:
         error_msg = str(e)
         print(f"\nDownload failed: {error_msg}", file=sys.stderr)
-        if total_downloaded > downloaded_bytes:
-            try:
-                with open(meta_file, 'w') as f:
-                    f.write(str(total_downloaded))
-            except IOError:
-                pass  # Ignore errors writing meta file
-        raise RuntimeError(f"Download failed: {error_msg}")
+        # Clean up partial files on any error
+        if tmp_file.exists():
+            tmp_file.unlink()
+        if meta_file.exists():
+            meta_file.unlink()
+        raise DownloadError(f"Download failed: {error_msg}")
     except IOError as e:
-         error_msg = str(e)
-         print(f"\nDownload failed: {error_msg}", file=sys.stderr)
-         raise RuntimeError(f"Download failed: {error_msg}")
+        error_msg = str(e)
+        print(f"\nDownload failed: {error_msg}", file=sys.stderr)
+        if tmp_file.exists():
+            tmp_file.unlink()
+        if meta_file.exists():
+            meta_file.unlink()
+        raise DownloadError(f"Download failed: {error_msg}")
     finally:
         print()
         try:
@@ -122,17 +184,29 @@ from typing import Tuple # Import Tuple
 
 from typing import Tuple, Optional # Import Optional
 
-def download_binary(dest_dir: Path, api_url: str, arch_override: str = None) -> Tuple[Path, Optional[str]]:
+
+
+def download_binary(
+    dest_dir: Path,
+    api_url: str,
+    arch_override: str = None,
+    timeout: int = 60,
+    max_size: int = 500 * 1024 * 1024  # 500MB
+) -> Tuple[Path, Optional[str]]:
     """Download the llama-swap binary.
     Args:
         dest_dir: Directory to download to
+        api_url: GitHub API URL for the release
         arch_override: Optional architecture override
+        timeout: Request timeout in seconds
+        max_size: Maximum allowed download size in bytes
+        
     Returns:
-        Tuple[Path, Optional[str]]: Path to the downloaded archive and the full SHA of the release (or None if not found)
+        Tuple[Path, Optional[str]]: Path to downloaded archive and release SHA
     Raises:
-        RuntimeError: If download fails or platform is not supported
+        DownloadError: If download fails
     """
-    os_name, auto_arch = platform.get_platform_info() # Use the helper or your original
+    os_name, auto_arch = platform.get_platform_info()
     arch = arch_override or auto_arch
 
     if os_name == 'linux' and arch == 'x64': # Match your original logic
@@ -193,7 +267,18 @@ def download_binary(dest_dir: Path, api_url: str, arch_override: str = None) -> 
         # Download asset
         download_url = found_asset['browser_download_url']
         dest_file = dest_dir / found_asset['name']
-        download_file(download_url, dest_file) # This already uses requests with certifi
+        try:
+            download_file(
+                download_url,
+                dest_file,
+                timeout=timeout,
+                max_size=max_size
+            )
+        except Exception as e:
+            # Clean up partial download on error
+            if dest_file.exists():
+                dest_file.unlink()
+            raise
         
         # Extract SHA from the release name or tag_name
         release_sha = None

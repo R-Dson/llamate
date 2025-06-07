@@ -16,8 +16,11 @@ def model_add_command(args) -> None:
         print("llamate is not initialized. Run 'llamate init' first.")
         raise SystemExit(1)
 
-    # Check for pre-configured model
-    model_data = MODEL_ALIASES.get(args.hf_spec, {}).copy() if args.hf_spec in MODEL_ALIASES else None
+    # Check for pre-configured model with alias validation
+    try:
+        model_data = model.parse_model_alias(args.hf_spec)
+    except model.InvalidInputError as e:
+        raise model.InvalidInputError(str(e)) from e
     
     if not model_data:
         # Parse as HF spec
@@ -28,8 +31,8 @@ def model_add_command(args) -> None:
                 "hf_file": hf_file,
                 "args": {}
             }
-        except ValueError as e:
-            raise ValueError(str(e)) from None
+        except model.InvalidInputError as e:
+            raise model.InvalidInputError(str(e)) from e
 
     # Use alias as model name if provided, otherwise use hf_spec for aliased models
     if args.hf_spec in MODEL_ALIASES:
@@ -45,8 +48,8 @@ def model_add_command(args) -> None:
     if args.set:
         try:
             model_data["args"].update(model.validate_args_list(args.set))
-        except ValueError as e:
-            raise ValueError(f"Invalid argument: {e}")
+        except model.InvalidInputError as e:
+            raise model.InvalidInputError(f"Invalid argument: {e}")
 
     # Set proxy based on port
     port = model_data["args"].get("port", "9999")

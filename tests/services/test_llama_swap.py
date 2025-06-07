@@ -80,7 +80,9 @@ def test_download_binary_success(mock_get, tmp_path, mock_platform_info, mock_do
     assert dest_file == tmp_path / "llama-swap_linux_amd64.tar.gz"
     mock_download.assert_called_once_with(
         "https://example.com/download/llama-swap_linux_amd64.tar.gz",
-        dest_file
+        dest_file,
+        timeout=60,
+        max_size=500*1024*1024
     )
 
 @patch('requests.get')
@@ -102,6 +104,12 @@ def test_download_binary_arch_override(mock_get, tmp_path, mock_platform_info, m
 
     # Updated assertion to check for the arm64 filename
     assert dest_file == tmp_path / "llama-swap_linux_arm64.tar.gz"
+    mock_download.assert_called_once_with(
+        "https://example.com/download/llama-swap_linux_arm64.tar.gz",
+        dest_file,
+        timeout=60,
+        max_size=500*1024*1024
+    )
 
 @patch('requests.get')
 def test_download_binary_no_matching_asset(mock_get, tmp_path, mock_platform_info, mock_download):

@@ -41,7 +41,7 @@ def test_parse_hf_spec_url_subdir():
 def test_parse_hf_spec_invalid_format():
     """Test parsing invalid HF spec format."""
     hf_spec = "invalid_spec"
-    with pytest.raises(ValueError, match="Invalid repo spec: invalid_spec. Use REPO_ID:FILE or HF_URL"):
+    with pytest.raises(model.InvalidInputError, match="Unrecognized repository specification format"):
         model.parse_hf_spec(hf_spec)
 
 def test_validate_model_name_valid():
@@ -54,7 +54,7 @@ def test_validate_model_name_with_spaces():
     """Test validating a model name with spaces (should be sanitized)."""
     name = "my model name"
     validated_name = model.validate_model_name(name)
-    assert validated_name == "mymodelname"
+    assert validated_name == "my_model_name"
 
 def test_validate_model_name_empty():
     """Test validating an empty model name."""

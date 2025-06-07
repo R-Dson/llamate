@@ -133,3 +133,40 @@ def test_load_model_config_no_args(mock_constants):
 
     model_config = config.load_model_config(model_name)
     assert model_config == expected_config
+
+def test_register_alias(mock_constants):
+    """Test registering a valid alias"""
+    model_name = "test_model"
+    model_file = constants.MODELS_DIR / f"{model_name}.yaml"
+    model_file.parent.mkdir(parents=True, exist_ok=True)
+    model_file.write_text("hf_repo: test/repo")
+    
+    alias = "my_alias"
+    config.register_alias(alias, model_name)
+    
+    global_config = config.load_global_config()
+    assert global_config["aliases"].get(alias) == model_name
+
+def test_register_alias_invalid(mock_constants):
+    """Test registering invalid aliases"""
+    model_name = "test_model"
+    model_file = constants.MODELS_DIR / f"{model_name}.yaml"
+    model_file.parent.mkdir(parents=True, exist_ok=True)
+    model_file.write_text("hf_repo: test/repo")
+    
+    # Empty alias
+    with pytest.raises(config.InvalidAliasError, match="Alias cannot be empty"):
+        config.register_alias("", model_name)
+        
+    # Alias with path separator
+    with pytest.raises(config.InvalidAliasError, match="Alias cannot contain path separators"):
+        config.register_alias("bad/alias", model_name)
+        
+    # Alias too long
+    long_alias = "a" * 51
+    with pytest.raises(config.InvalidAliasError, match="Alias too long"):
+        config.register_alias(long_alias, model_name)
+        
+    # Non-existent model
+    with pytest.raises(config.ModelNotFoundError, match="Model 'missing_model' not found"):
+        config.register_alias("good_alias", "missing_model")

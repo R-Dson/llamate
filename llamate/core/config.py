@@ -4,6 +4,7 @@ import yaml
 import json
 from typing import Dict, Any, Optional, NoReturn
 from yaml.representer import SafeRepresenter
+from ..utils.exceptions import InvalidAliasError, ModelNotFoundError
 
 from .. import constants
 
@@ -134,8 +135,23 @@ def register_alias(alias: str, model_name: str) -> None:
         model_name: The actual model name to map to
         
     Raises:
+        InvalidAliasError: If alias is invalid
         RuntimeError: If alias registration fails
     """
+    # Validate alias format
+    if not alias:
+        raise InvalidAliasError("Alias cannot be empty")
+    if '/' in alias or '\\' in alias:
+        raise InvalidAliasError("Alias cannot contain path separators")
+    if len(alias) > 50:
+        raise InvalidAliasError("Alias too long (max 50 characters)")
+    
+    # Validate model exists
+    model_file = constants.MODELS_DIR / f"{model_name}.yaml"
+    if not model_file.exists():
+        raise ModelNotFoundError(f"Model '{model_name}' not found")
+    
+    # Register alias
     global_config = load_global_config()
     aliases = global_config.get("aliases", {})
     aliases[alias] = model_name
