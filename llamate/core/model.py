@@ -98,7 +98,7 @@ def validate_model_name(model_name: str) -> str:
     model_name = _validate_text(model_name, "Model name")
     if not any(c.isalnum() for c in model_name):
         raise ValueError("Model name must contain at least one alphanumeric character")
-    return ''.join(c if c.isalnum() or c in "_-" else '' for c in model_name)
+    return ''.join(c if c.isalnum() or c in "_-:" else '' for c in model_name)
 
 def validate_args_list(args_list: List[str]) -> Dict[str, str]:
     """Validate model arguments from command line.

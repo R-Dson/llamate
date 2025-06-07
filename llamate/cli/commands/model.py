@@ -31,7 +31,11 @@ def model_add_command(args) -> None:
         except ValueError as e:
             raise ValueError(str(e)) from None
 
-    model_name = model.validate_model_name(args.alias or Path(model_data["hf_file"]).stem)
+    # Use alias as model name if provided, otherwise use hf_spec for aliased models
+    if args.hf_spec in MODEL_ALIASES:
+        model_name = model.validate_model_name(args.alias or args.hf_spec)
+    else:
+        model_name = model.validate_model_name(args.alias or Path(model_data["hf_file"]).stem)
     
     # Auto GPU configuration if requested
     if args.auto_gpu:
@@ -50,13 +54,8 @@ def model_add_command(args) -> None:
 
     config.save_model_config(model_name, model_data)
     
-    # Register aliases
-    # 1. If added via pre-configured alias, register that alias
-    if args.hf_spec in MODEL_ALIASES:
-        config.register_alias(args.hf_spec, model_name)
-    
-    # 2. Register custom alias if provided
-    if args.alias:
+    # Register custom alias if provided and different from model name
+    if args.alias and args.alias != model_name:
         config.register_alias(args.alias, model_name)
     
     print(f"Model '{model_name}' added successfully.")
