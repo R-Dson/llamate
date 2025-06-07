@@ -32,17 +32,24 @@ def serve_command(args) -> None:
     # Build the command
     cmd_list = [str(swap_path), "--config", str(config.constants.LLAMA_SWAP_CONFIG_FILE)]
     
-    # Add the listen port from global config
-    listen_port = global_config.get("llama_swap_listen_port", config.constants.LLAMA_SWAP_DEFAULT_PORT)
-    host_port = None # TODO
-    if host_port is None:
-        listen_port = ":" + str(listen_port)
-    else:
-        listen_port = f"{host_port}:{listen_port}"
-    cmd_list.extend(["--listen", listen_port])
+    # Use port from command-line, config, or default
+    port = args.port if args.port else global_config.get(
+        "llama_swap_listen_port",
+        config.constants.LLAMA_SWAP_DEFAULT_PORT
+    )
+    cmd_list.extend(["--listen", f":{port}"])
 
-    # Add any additional arguments after 'serve'
-    cmd_list.extend(sys.argv[2:])
+    # Add any additional arguments after 'serve', excluding --port
+    additional_args = []
+    i = 0
+    args_to_process = sys.argv[2:]
+    while i < len(args_to_process):
+        if args_to_process[i] == '--port':
+            i += 2 # Skip --port and its value
+        else:
+            additional_args.append(args_to_process[i])
+            i += 1
+    cmd_list.extend(additional_args)
     print("Running command:", " ".join(cmd_list))
 
     try:
