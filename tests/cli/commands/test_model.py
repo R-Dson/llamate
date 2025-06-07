@@ -183,11 +183,14 @@ def test_model_list_command_no_models_dir(mock_model_commands, capsys):
     assert "No models defined" in captured.out
     mocks["mock_load_model_config"].assert_not_called()
 
-def test_model_remove_command_success(mock_model_commands, capsys):
-    """Test removing a model successfully."""
+def test_model_remove_command_success(mock_model_commands, capsys, monkeypatch):
+    """Test removing a model successfully with prompt response 'n'."""
     mocks = mock_model_commands
     model_name = "test_model"
     args = MagicMock(model_name=model_name, delete_gguf=False)
+    
+    # Simulate user input 'n'
+    monkeypatch.setattr('builtins.input', lambda prompt=None: 'n')
 
     model_remove_command(args)
 
@@ -197,14 +200,40 @@ def test_model_remove_command_success(mock_model_commands, capsys):
     mocks["mock_save_global_config"].assert_not_called()  # No aliases to remove in this test
     captured = capsys.readouterr()
     assert f"Model '{model_name}' definition removed." in captured.out
-    assert "GGUF file" not in captured.out
+    assert "Do you want to remove the GGUF file" in captured.out
+    # Check that the removal message is not present
+    assert "GGUF file 'test.gguf' removed." not in captured.out
 
-def test_model_remove_command_delete_gguf(mock_model_commands, capsys):
-    """Test removing a model and deleting the GGUF file."""
+def test_model_remove_command_prompt_yes(mock_model_commands, capsys, monkeypatch):
+    """Test removing a model with prompt response 'y'."""
+    mocks = mock_model_commands
+    model_name = "test_model"
+    mocks["mock_load_model_config"].return_value = {"hf_repo": "test/repo", "hf_file": "test.gguf", "args": {}}
+    args = MagicMock(model_name=model_name, delete_gguf=False)
+
+    # Simulate user input 'y'
+    monkeypatch.setattr('builtins.input', lambda prompt=None: 'y')
+
+    model_remove_command(args)
+
+    mocks["mock_load_model_config"].assert_called_once_with(model_name)
+    assert mocks["mock_path_unlink"].call_count == 2 # For the model yaml and the gguf file
+    mocks["mock_load_global_config"].assert_called()
+    assert mocks["mock_load_global_config"].call_count == 1
+    captured = capsys.readouterr()
+    assert f"Model '{model_name}' definition removed." in captured.out
+    assert "Do you want to remove the GGUF file" in captured.out
+    assert f"GGUF file 'test.gguf' removed." in captured.out
+
+def test_model_remove_command_delete_gguf(mock_model_commands, capsys, monkeypatch):
+    """Test removing a model with --delete-gguf flag (no prompt)."""
     mocks = mock_model_commands
     model_name = "test_model"
     mocks["mock_load_model_config"].return_value = {"hf_repo": "test/repo", "hf_file": "test.gguf", "args": {}}
     args = MagicMock(model_name=model_name, delete_gguf=True)
+    
+    # Ensure input isn't called
+    monkeypatch.setattr('builtins.input', lambda _: pytest.fail("Input should not be called with --delete-gguf"))
 
     model_remove_command(args)
 
@@ -215,6 +244,7 @@ def test_model_remove_command_delete_gguf(mock_model_commands, capsys):
     captured = capsys.readouterr()
     assert f"Model '{model_name}' definition removed." in captured.out
     assert f"GGUF file 'test.gguf' removed." in captured.out
+    assert "Do you want to remove the GGUF file" not in captured.out
 
 def test_model_remove_command_model_not_found(mock_model_commands, capsys):
     """Test removing a non-existent model."""

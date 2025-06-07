@@ -112,7 +112,8 @@ def model_remove_command(args) -> None:
             print(f"GGUF file '{model_config['hf_file']}' removed.")
         else:
             # Prompt user when flag is not provided
-            response = input(f"Do you want to remove the GGUF file '{model_config['hf_file']}'? [y/N]: ").strip().lower()
+            print(f"Do you want to remove the GGUF file '{model_config['hf_file']}'? [y/N]: ", end='', flush=True)
+            response = input().strip().lower()
             if response in ('y', 'yes'):
                 gguf_path = Path(global_config["ggufs_storage_path"]) / model_config["hf_file"]
                 gguf_path.unlink(missing_ok=True)
