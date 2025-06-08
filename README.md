@@ -12,7 +12,7 @@ The tool use and downloads the follwing binaries, stored in `~/.config/llamate/b
 The tool only supports Nvidia och Linux currently by default. You can replace the `llama-server` with your own to support your hardware. 
 
 ## Key Features ✨
-  - Add models from Huggingface or use pre-configured aliases or popular models (llama3:8b, qwen3:7b, etc.)
+  - Add models from Huggingface or use pre-configured aliases of popular models (llama3:8b, qwen3:7b, etc.)
   - Track model configurations and versions
   - Download and store GGUF files
   - Auto-detect and configure GPU settings (Still testing)
