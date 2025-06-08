@@ -5,7 +5,7 @@ A simple, "Ollama-like" tool for managing and running GGUF language models from 
 `llamate` streamlines your local LLM workflow by automating downloads, configuration, and execution. It's designed for users who want a straightforward way to handle models with GPU acceleration.
 
 ## Key Features ✨
-- **Easy Model Management:** Add models from Hugging Face or use simple aliases (`llama3:8b`).
+- **Easy Model Management:** Add models from Huggingface or use simple aliases (`llama3:8b`).
 - **Automated Setup:** Downloads and manages GGUF files and required server binaries for you.
 - **GPU Accelerated:** Runs models using a `llama.cpp`-based server, optimized for GPUs.
 - **Persistent Configuration:** Set default inference parameters (context size, temp, etc.) for each model.
@@ -26,14 +26,14 @@ llamate init
 ```
 
 #### 2. Add and Download a Model
-You can use a pre-configured alias or a full Hugging Face repository link.
+You can use a pre-configured alias or a full Huggingface repository link.
 
 ```bash
 # Add and download using an alias
 llamate add llama3:8b
 llamate pull llama3:8b
 
-# Or, add a specific model from Hugging Face with a custom alias
+# Or, add a specific model from Huggingface with a custom alias
 # llamate add <hf_repo>:<hf_file> --alias <your-alias>
 llamate add bartowski/Qwen_Qwen3-0.6B-GGUF:Qwen_Qwen3-0.6B-Q8_0.gguf --alias my-model
 llamate pull my-model
@@ -103,9 +103,11 @@ The default `llama-server` binary is built for Linux/NVIDIA. If it doesn't work 
 - `ggufs/`: Downloaded GGUF model files.
 
 ## TODO
-- Implement `llamate logs` to print server logs.
 - Add `llamate run --host <IP>` to set the host ip.
-- Add `llamate serve` option to set localhost connections only.
+- Add `llamate serve --public` option to set localhost or public connections only.
+- Add pre-configured optimal parameters for pre-configured alias models.
+- Implement `llamate show <model>` to display model information (parameters, license, etc.).
+- Implement `llamate copy <source> <destination>` to duplicate model configurations/aliases.
 
 # Acknowledgement
 
