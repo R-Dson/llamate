@@ -1,6 +1,6 @@
 # llamate 🌟
 
-A simple, "Ollama-like" tool for managing and running GGUF language models from your terminal.
+llamate (llama + mate) is a simple, "Ollama-like" tool for managing and running GGUF language models from your terminal.
 
 `llamate` streamlines your local LLM workflow by automating downloads, configuration, and execution. It's designed for users who want a straightforward way to handle models with GPU acceleration.
 
