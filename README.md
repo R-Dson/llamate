@@ -104,6 +104,8 @@ The default `llama-server` binary is built for Linux/NVIDIA. If it doesn't work 
 
 ## TODO
 - Implement `llamate logs` to print server logs.
+- Add `llamate run --host <IP>` to set the host ip.
+- Add `llamate serve` option to set localhost connections only.
 
 # Acknowledgement
 
