@@ -1,126 +1,117 @@
 # llamate 🌟
 
-Simple "Ollama-like" tool for managing and running GGUF format language models.
+A simple, "Ollama-like" tool for managing and running GGUF language models from your terminal.
 
-llamate streamlines language model management with automated workflows and GPU optimization. It's designed for users who need easy and efficient model handling.
-
-The tool use and downloads the follwing binaries, stored in `~/.config/llamate/bin/`:
-  - [R-Dson/llama-server-compile](https://github.com/R-Dson/llama-server-compile). This repo is used to compile `llama-server`
-  - [R-Dson/llama-swap](https://github.com/R-Dson/llama-swap). This repo is used to compile `llama-swap` with Ollama endpoints
-
-## Platform
-The tool only supports Nvidia och Linux currently by default. You can replace the `llama-server` with your own to support your hardware. 
+`llamate` streamlines your local LLM workflow by automating downloads, configuration, and execution. It's designed for users who want a straightforward way to handle models with GPU acceleration.
 
 ## Key Features ✨
-  - Add models from Huggingface or use pre-configured aliases of popular models (llama3:8b, qwen3:7b, etc.)
-  - Track model configurations and versions
-  - Download and store GGUF files
-  - Auto-detect and configure GPU settings (Still testing)
-  - Set default inference parameters per model
-  - Run models using llama-swap server
-  - Downloads `llama-swap` and `llama-server` automatically
+- **Easy Model Management:** Add models from Hugging Face or use simple aliases (`llama3:8b`).
+- **Automated Setup:** Downloads and manages GGUF files and required server binaries for you.
+- **GPU Accelerated:** Runs models using a `llama.cpp`-based server, optimized for GPUs.
+- **Persistent Configuration:** Set default inference parameters (context size, temp, etc.) for each model.
 
-
-## Quick Start 🚀
-
-### Requirements (Optional if the default llama-server binary does not work)
-
-1. Download and install your appropriate drivers, such as CUDA for Nvidia users.
-
-<details>
-
-<summary> Optional steps if the default llama-server binary does not work </summary>
-
-2. **Download `llama.cpp`**
-   Get the latest version from:
-   https://github.com/ggerganov/llama.cpp
-
-3. **Build `llama-server`**
-   Follow the build instructions for your platform to create the `llama-server` binary
-
-</details>
-
-### Installation
+## Installation 🚀
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/R-Dson/llamate/main/install.sh | bash
 ```
+> You may need to restart your terminal or run `source ~/.bashrc` for the command to be available.
 
-### Setup
+## Usage ⚡
+
+#### 1. Initialize `llamate`
+This downloads the necessary server binaries. 
 ```bash
-# Initialize `llama-swap` and `llama-server`
 llamate init
-
-# Add a model using pre-configured alias
-llamate add llama3:8b --alias my-llama
-# Or add a specific model
-# llamate add bartowski/Qwen_Qwen3-0.6B-GGUF:Qwen_Qwen3-0.6B-Q8_0.gguf --alias my-model
-
-
-# Download the GGUF file
-llamate pull my-llama
-
-# Serve the model
-llamate serve
 ```
 
-## Basic Usage
-### Managing Models
+#### 2. Add and Download a Model
+You can use a pre-configured alias or a full Hugging Face repository link.
+
 ```bash
-# List configured models
-llamate list
+# Add and download using an alias
+llamate add llama3:8b
+llamate pull llama3:8b
 
-# Configure model parameters (see https://github.com/ggml-org/llama.cpp/tree/master/tools/server for more settings)
-llamate set my-model ctx-size=32768 temp=0.6 top-p=0.95 min-p=0.05 top-k=40 n-gpu-layers=99
-
-# Remove a model
-llamate remove old-model
+# Or, add a specific model from Hugging Face with a custom alias
+# llamate add <hf_repo>:<hf_file> --alias <your-alias>
+llamate add bartowski/Qwen_Qwen3-0.6B-GGUF:Qwen_Qwen3-0.6B-Q8_0.gguf --alias my-model
+llamate pull my-model
 ```
 
-### Running the Server
+#### 3. Run a Model
+
+**API Server (Ollama-compatible):**
 ```bash
-# Start server with default settings
+# Start the server with a model
 llamate serve
 
-# Custom port (defaults to 11434)
+# Use a custom port (default: 11434)
 llamate serve --port 9090
 ```
 
-### Running Models
+**Interactive Chat:**
 ```bash
-# Run a model in interactive chat mode
-llamate run my-llama
+llamate run llama3:8b
 ```
+
+#### Other Commands
+
+```bash
+# List all configured models
+llamate list
+
+# Set custom parameters for a model (context size, temp, etc., https://github.com/ggml-org/llama.cpp/tree/master/tools/server for more settings)
+llamate set llama3:8b ctx-size=8192 n-gpu-layers=99
+# or
+# llamate set my-model ctx-size=32768 temp=0.6 top-p=0.95 min-p=0.05 top-k=40 n-gpu-layers=99
+
+# Remove a model and its GGUF file
+llamate remove llama3:8b
+```
+
+## Platform Support & Troubleshooting
+
+- **Default Support:** Linux with an NVIDIA GPU.
+- **Requirements:** You must have your GPU drivers (e.g., CUDA) installed.
+
+<details>
+<summary><b>Running on other hardware (AMD, Mac, etc.)</b></summary>
+
+The default `llama-server` binary is built for Linux/NVIDIA. If it doesn't work for you, you can compile your own:
+
+1.  **Download `llama.cpp`**:
+    ```bash
+    git clone https://github.com/ggerganov/llama.cpp.git
+    cd llama.cpp
+    ```
+2.  **Build `llama-server`**:
+    Follow the `llama.cpp` build instructions for your platform (e.g., `make LLAMA_METAL=1` for Mac).
+
+3.  **Replace the Binary**:
+    Copy your compiled `server` binary to the `llamate` config directory:
+    ```bash
+    cp ./server ~/.config/llamate/bin/llama-server
+    ```
+</details>
+
+## Configuration
+
+`llamate` stores all its files in `~/.config/llamate/`:
+- `bin/`: Server binaries (`llama-server`, `llama-swap`).
+- `models/`: YAML configuration for each model.
+- `ggufs/`: Downloaded GGUF model files.
 
 ## TODO
-- Print logs with `llamate logs`
+- Implement `llamate logs` to print server logs.
 
+# Acknowledgement
 
-## Configuration Overview ⚙️
-llamate uses YAML configuration files:
-- **Global config**: `~/.config/llamate/llamate.yaml`
-- **Model configs**: `~/.config/llamate/models/*.yaml`
-- **Model GGUF files**: `~/.config/llamate/ggufs/*.yaml`
+This tool is built on the following projects:
+- **[llama.cpp](https://github.com/ggerganov/llama.cpp)**: For its incredible, high-performance C++ inference engine.
+- **[llama-swap](https://github.com/mostlygeek/llama-swap)**: For its elegant server wrapper that enables on-the-fly model swapping and multi-model configuration.
 
-Example model configuration:
-```yaml
-hf_repo: bartowski/Qwen_Qwen3-0.6B-GGUF
-hf_file: Qwen_Qwen3-0.6B-Q8_0.gguf
-args:
-  max_tokens: 2048
-  temperature: 0.8
-```
+Thank you to [Ollama](https://github.com/ollama/ollama) For popularizing a simple and powerful local LLM workflow.
 
-## Project Structure 🏗️
-```
-llamate/
-├── cli/          # Command-line interface
-├── core/         # Core functionality
-├── data/         # Data resources
-├── services/     # Integration services
-├── utils/        # Utility functions
-├── __init__.py   # Package initialization
-├── __main__.py   # Main entry point
-└── constants.py  # Global constants
-```
-
+---
+*This tool uses binaries compiled from [llama-server-compile](https://github.com/R-Dson/llama-server-compile) and [llama-swap](https://github.com/R-Dson/llama-swap).*
