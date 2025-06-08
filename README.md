@@ -108,6 +108,7 @@ The default `llama-server` binary is built for Linux/NVIDIA. If it doesn't work 
 - Add pre-configured optimal parameters for pre-configured alias models.
 - Implement `llamate show <model>` to display model information (parameters, license, etc.).
 - Implement `llamate copy <source> <destination>` to duplicate model configurations/aliases.
+- Look into supporting Vulkan and AMD ROCm.
 
 # Acknowledgement
 
