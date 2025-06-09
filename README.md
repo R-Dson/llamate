@@ -79,13 +79,13 @@ llamate remove llama3:8b
 
 ## Platform Support & Troubleshooting
 
-- **Default Support:** Linux with an NVIDIA GPU.
+- **Default Support:** The default `llama-server` binary is built for CUDA, Metal, ROCm and Vulkan (Non-CUDA builds are still testing).
 - **Requirements:** You must have your GPU drivers (e.g., CUDA) installed.
 
 <details>
 <summary><b>Running on other hardware (AMD, Mac, etc.)</b></summary>
 
-The default `llama-server` binary is built for Linux/NVIDIA. If it doesn't work for you, you can compile your own:
+If tne `llama-server` binary still doesn't work for you, you can compile your own:
 
 1.  **Download `llama.cpp`**:
     ```bash
@@ -111,9 +111,7 @@ The default `llama-server` binary is built for Linux/NVIDIA. If it doesn't work 
 
 ## TODO
 - Add pre-configured optimal parameters for pre-configured alias models.
-- Look into supporting Vulkan and AMD ROCm.
 - Add support for importing model yaml files.
-- Add init to the install script.
 
 # Acknowledgement
 
