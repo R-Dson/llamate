@@ -37,20 +37,29 @@ def serve_command(args) -> None:
         "llama_swap_listen_port",
         config.constants.LLAMA_SWAP_DEFAULT_PORT
     )
-    cmd_list.extend(["--listen", f":{port}"])
+    
+    # Determine listen address based on public flag
+    if args.public:
+        address = f"0.0.0.0:{port}"
+    else:
+        address = f"127.0.0.1:{port}"
+        
+    cmd_list.extend(["--listen", address])
 
-    # Add any additional arguments after 'serve', excluding --port
+    # Add any additional arguments after 'serve', excluding --port and --public
     additional_args = []
     i = 0
     args_to_process = sys.argv[2:]
     while i < len(args_to_process):
         if args_to_process[i] == '--port':
-            i += 2 # Skip --port and its value
+            i += 2  # Skip --port and its value
+        elif args_to_process[i] == '--public':
+            i += 1  # Skip --public (boolean flag, no value)
         else:
             additional_args.append(args_to_process[i])
             i += 1
     cmd_list.extend(additional_args)
-    print("Running command:", " ".join(cmd_list))
+    # print("Running command:", " ".join(cmd_list))
 
     try:
         subprocess.run(cmd_list, check=True)

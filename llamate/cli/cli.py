@@ -92,6 +92,8 @@ def create_parser() -> argparse.ArgumentParser:
     # Serve command
     serve_parser = subparsers.add_parser('serve', help='Run the llama-swap server')
     serve_parser.add_argument('--port', type=int, help='Port to run llama-swap on')
+    serve_parser.add_argument('--public', action='store_true',
+                              help='Listen on all interfaces (public) instead of localhost')
     serve_parser.set_defaults(func=serve_commands.serve_command)
 
     # Update command
