@@ -171,3 +171,54 @@ def model_pull_command(args) -> None:
     except Exception as e:
         print(f"Download failed: {e}", file=sys.stderr)
         sys.exit(1)
+def resolve_model_name(name: str) -> str:
+    """Resolves a model name or alias to the actual model name."""
+    # Check if there's a model file for this name
+    model_file = config.constants.MODELS_DIR / f"{name}.yaml"
+    if model_file.exists():
+        return name
+
+    # Check global config aliases
+    global_config = config.load_global_config()
+    aliases = global_config.get("aliases", {})
+    if name in aliases:
+        return aliases[name]
+
+    raise ValueError(f"Model '{name}' not found. Please add the model first.")
+
+def model_show_command(args) -> None:
+    """Display model information."""
+    try:
+        model_name = resolve_model_name(args.model_name)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        model_config = config.load_model_config(model_name)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Model: {model_name}")
+    print(f"Repository: {model_config.get('hf_repo', 'N/A')}")
+    print(f"GGUF file: {model_config.get('hf_file', 'N/A')}")
+
+    # Check if GGUF file exists
+    global_config = config.load_global_config()
+    gguf_dir = global_config.get("ggufs_storage_path", "")
+    gguf_path = Path(gguf_dir) / model_config.get("hf_file", "")
+    if gguf_path.exists():
+        print(f"GGUF Status: Downloaded at {gguf_path}")
+    else:
+        print("GGUF Status: Not downloaded")
+
+    print("Arguments:")
+    model_args = model_config.get('args', {})
+    if model_args:
+        for key, value in model_args.items():
+            print(f"  {key}: {value}")
+    else:
+        print("  No custom arguments set.")
+
+    print("License: Not available") # Placeholder as per plan

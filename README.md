@@ -106,13 +106,12 @@ The default `llama-server` binary is built for Linux/NVIDIA. If it doesn't work 
 - `ggufs/`: Downloaded GGUF model files.
 
 ## TODO
-- Add `llamate serve --public` option to set localhost or public connections only.
 - Add pre-configured optimal parameters for pre-configured alias models.
-- Implement `llamate show <model>` to display model information (parameters, license, etc.).
 - Implement `llamate copy <source> <destination>` to duplicate model configurations/aliases.
 - Look into supporting Vulkan and AMD ROCm.
 - Add support for importing model yaml files.
-- Make all paths distro agnostic, or split Windows and UNIX.
+- Make installation fewer steps with optional arguments, ie, `llamate add llama3:8b --no-pull` would prevent the downloading, else just download.
+- Add init to the install script.
 
 # Acknowledgement
 

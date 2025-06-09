@@ -65,6 +65,11 @@ def create_parser() -> argparse.ArgumentParser:
     pull_parser.add_argument('model_name_or_spec', help='Model to download (name, repo:file, or URL)')
     pull_parser.set_defaults(func=model_commands.model_pull_command)
 
+    # Show command
+    show_parser = subparsers.add_parser('show', help='Show model information')
+    show_parser.add_argument('model_name', help='Name of the model to show')
+    show_parser.set_defaults(func=model_commands.model_show_command)
+
     # Config commands
     config_parser = subparsers.add_parser('config', help='Model configuration commands')
     config_subparsers = config_parser.add_subparsers(dest='config_command')
