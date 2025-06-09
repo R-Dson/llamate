@@ -70,6 +70,11 @@ def create_parser() -> argparse.ArgumentParser:
     show_parser.add_argument('model_name', help='Name of the model to show')
     show_parser.set_defaults(func=model_commands.model_show_command)
 
+    copy_parser = subparsers.add_parser('copy', help='Copy a model configuration')
+    copy_parser.add_argument('source_model', help='Name or alias of the source model')
+    copy_parser.add_argument('new_model_name', help='New name for the copied model')
+    copy_parser.set_defaults(func=model_commands.model_copy_command)
+
     # Config commands
     config_parser = subparsers.add_parser('config', help='Model configuration commands')
     config_subparsers = config_parser.add_subparsers(dest='config_command')

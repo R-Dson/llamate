@@ -171,6 +171,42 @@ def model_pull_command(args) -> None:
     except Exception as e:
         print(f"Download failed: {e}", file=sys.stderr)
         sys.exit(1)
+def model_copy_command(args) -> None:
+    """Copy a model configuration to a new model.
+
+    Args:
+        args: Command line arguments containing source_model and new_model_name.
+    """
+    if not config.constants.LLAMATE_HOME.exists():
+        print("llamate is not initialized. Run 'llamate init' first.")
+        raise SystemExit(1)
+
+    try:
+        source_name = resolve_model_name(args.source_model)
+        new_name = model.validate_model_name(args.new_model_name)
+        
+        if source_name == new_name:
+            print("Error: Source and new model names must be different.", file=sys.stderr)
+            sys.exit(1)
+            
+        model_file = config.constants.MODELS_DIR / f"{new_name}.yaml"
+        if model_file.exists():
+            print(f"Error: Model '{new_name}' already exists.", file=sys.stderr)
+            sys.exit(1)
+
+        global_config = config.load_global_config()
+        aliases = global_config.get("aliases", {})
+        if new_name in aliases:
+            print(f"Error: '{new_name}' is already used as an alias for model '{aliases[new_name]}'.", file=sys.stderr)
+            sys.exit(1)
+            
+        model_config = config.load_model_config(source_name)
+        config.save_model_config(new_name, model_config)
+        print(f"Model '{source_name}' copied to '{new_name}'.")
+        
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 def resolve_model_name(name: str) -> str:
     """Resolves a model name or alias to the actual model name."""
     # Check if there's a model file for this name
