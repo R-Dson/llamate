@@ -102,6 +102,8 @@ def create_parser() -> argparse.ArgumentParser:
     # Run command
     run_parser = subparsers.add_parser('run', help='Run a model in interactive chat mode')
     run_parser.add_argument('model_name', help='Name of the model to run')
+    run_parser.add_argument('--host', default='localhost', help='Host for the llama-swap API')
+    run_parser.add_argument('--port', type=int, help='Port of the llama-swap server')
     run_parser.set_defaults(func=run_commands.run_command)
 
     # Print command

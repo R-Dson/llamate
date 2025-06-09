@@ -16,8 +16,8 @@ def run_command(args) -> None:
     
     global_config = config.load_global_config()
     
-    listen_port = global_config.get("llama_swap_listen_port", constants.LLAMA_SWAP_DEFAULT_PORT)
-    api_url = f"http://localhost:{listen_port}/v1/chat/completions"
+    listen_port = args.port or global_config.get("llama_swap_listen_port", constants.LLAMA_SWAP_DEFAULT_PORT)
+    api_url = f"http://{args.host}:{listen_port}/v1/chat/completions"
 
     messages = []
     print(f"Starting conversation with model: {model_name}")

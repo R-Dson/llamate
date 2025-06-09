@@ -53,6 +53,9 @@ llamate serve --port 9090
 **Interactive Chat:**
 ```bash
 llamate run llama3:8b
+
+# Connect to a specific host (default: localhost) or a specific port (default: 11434)
+llamate run llama3:8b --host <IP> --port <PORT>
 ```
 
 #### Other Commands
@@ -103,12 +106,12 @@ The default `llama-server` binary is built for Linux/NVIDIA. If it doesn't work 
 - `ggufs/`: Downloaded GGUF model files.
 
 ## TODO
-- Add `llamate run --host <IP>` to set the host ip.
 - Add `llamate serve --public` option to set localhost or public connections only.
 - Add pre-configured optimal parameters for pre-configured alias models.
 - Implement `llamate show <model>` to display model information (parameters, license, etc.).
 - Implement `llamate copy <source> <destination>` to duplicate model configurations/aliases.
 - Look into supporting Vulkan and AMD ROCm.
+- Add support for importing model yaml files.
 
 # Acknowledgement
 
