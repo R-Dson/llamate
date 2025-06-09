@@ -62,6 +62,23 @@ def model_add_command(args) -> None:
         config.register_alias(args.alias, model_name)
     
     print(f"Model '{model_name}' added successfully.")
+    
+    # Download GGUF file unless --no-pull is specified
+    if not args.no_pull:
+        try:
+            global_config = config.load_global_config()
+            gguf_dir = global_config["ggufs_storage_path"]
+            Path(gguf_dir).mkdir(parents=True, exist_ok=True)
+            gguf_path = Path(gguf_dir) / model_data["hf_file"]
+            
+            if gguf_path.exists():
+                print(f"GGUF already exists at {gguf_path}")
+            else:
+                url = f"https://huggingface.co/{model_data['hf_repo']}/resolve/main/{model_data['hf_file']}"
+                download.download_file(url, gguf_path)
+                print(f"Successfully downloaded {model_data['hf_file']} to {gguf_path}")
+        except Exception as e:
+            print(f"Download failed: {e}", file=sys.stderr)
 
 def model_list_command(args) -> None:
     """List configured models."""
@@ -170,7 +187,6 @@ def model_pull_command(args) -> None:
         print(f"Successfully downloaded {config_dict['hf_file']} to {gguf_path}")
     except Exception as e:
         print(f"Download failed: {e}", file=sys.stderr)
-        sys.exit(1)
 def model_copy_command(args) -> None:
     """Copy a model configuration to a new model.
 

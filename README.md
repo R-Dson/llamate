@@ -29,13 +29,17 @@ llamate init
 You can use a pre-configured alias or a full Huggingface repository link.
 
 ```bash
-# Add and download using an alias
+# Add and automatically download using an alias
 llamate add llama3:8b
-llamate pull llama3:8b
+
+# To add without downloading, use --no-pull
+llamate add llama3:8b --no-pull
 
 # Or, add a specific model from Huggingface with a custom alias
 # llamate add <hf_repo>:<hf_file> --alias <your-alias>
 llamate add bartowski/Qwen_Qwen3-0.6B-GGUF:Qwen_Qwen3-0.6B-Q8_0.gguf --alias my-model
+
+# For existing aliases, you can still download manually
 llamate pull my-model
 ```
 
@@ -107,10 +111,8 @@ The default `llama-server` binary is built for Linux/NVIDIA. If it doesn't work 
 
 ## TODO
 - Add pre-configured optimal parameters for pre-configured alias models.
-- Implement `llamate copy <source> <destination>` to duplicate model configurations/aliases.
 - Look into supporting Vulkan and AMD ROCm.
 - Add support for importing model yaml files.
-- Make installation fewer steps with optional arguments, ie, `llamate add llama3:8b --no-pull` would prevent the downloading, else just download.
 - Add init to the install script.
 
 # Acknowledgement

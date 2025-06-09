@@ -49,6 +49,8 @@ def create_parser() -> argparse.ArgumentParser:
     add_parser.add_argument('--set', nargs='+', help='Set model arguments (KEY=VALUE)')
     add_parser.add_argument('--no-gpu', action='store_false', dest='auto_gpu',
                           help='Disable automatic GPU configuration')
+    add_parser.add_argument('--no-pull', action='store_true',
+                          help='Skip downloading the GGUF file after adding the model')
     add_parser.set_defaults(func=model_commands.model_add_command)
 
     list_parser = subparsers.add_parser('list', help='List configured models')
