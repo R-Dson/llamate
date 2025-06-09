@@ -1,6 +1,7 @@
 from typing import Optional
 """Download functionality for llamate."""
 import json
+import os # Added for os.chmod
 import shutil
 import ssl
 import tarfile
@@ -302,12 +303,32 @@ def extract_binary(archive: Path, dest_dir: Path) -> None:
         archive: Path to the downloaded archive
         dest_dir: Directory to extract to
     """
-    if archive.suffix == '.zip':
+    # Check if the file is a known archive type
+    if archive.suffix == '.zip': # Handles .zip files
         with zipfile.ZipFile(archive, 'r') as z:
             z.extractall(dest_dir)
-    else:
+    elif archive.suffix == '.gz' or archive.suffix == '.tgz': # Handles .tar.gz and .tgz files
         with tarfile.open(archive, 'r:gz') as t:
             t.extractall(dest_dir)
+    else: # Assume it's a direct binary if not a known archive type
+        target_path = dest_dir / archive.name
+        # Ensure destination directory exists
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Remove existing file/directory if it exists at the target path
+        if target_path.exists():
+            if target_path.is_dir():
+                shutil.rmtree(target_path)
+            else:
+                target_path.unlink()
+        
+        # Move the binary to the destination directory
+        shutil.move(str(archive), str(target_path))
+        
+        # Make the binary executable on Unix-like systems
+        if sys.platform != "win32":
+            os.chmod(target_path, os.stat(target_path).st_mode | 0o111) # Add execute permissions
+        return # Exit after moving the binary, no further extraction needed
     
     # Handle folder structure: if the archive extracted into a 'bin' folder, move its contents to the destination
     extracted_dir = dest_dir / "bin"

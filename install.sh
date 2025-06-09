@@ -214,4 +214,24 @@ echo "Installation complete."
 echo "You can try running: $TARGET_INSTALL_NAME --version"
 echo "------------------------------------------"
 
+# --- 8. Optional Initialization ---
+if ! $SYSTEM_INSTALL; then
+    if [ -t 0 ]; then  # Interactive
+        echo ""
+        echo -n "Run '$TARGET_INSTALL_NAME init' for first-time setup? [Y/n]: "
+        read choice
+        choice_lower=$(echo "${choice:-y}" | tr '[:upper:]' '[:lower:]')
+        if [ "$choice_lower" = "y" ] || [ "$choice_lower" = "yes" ]; then
+            echo "Running initialization..."
+            $FINAL_INSTALL_PATH init || echo "Initialization failed - run manually later"
+        fi
+    else  # Non-interactive
+        echo "Running automatic initialization..."
+        $FINAL_INSTALL_PATH init || echo "Initialization failed - run manually later"
+    fi
+else  # System-wide install
+    echo ""
+    echo "Note: Run '$TARGET_INSTALL_NAME init' per user for first-time setup"
+fi
+
 exit 0
