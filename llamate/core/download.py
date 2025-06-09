@@ -189,7 +189,6 @@ from typing import Tuple, Optional # Import Optional
 def download_binary(
     dest_dir: Path,
     api_url: str,
-    arch_override: str = None,
     timeout: int = 60,
     max_size: int = 500 * 1024 * 1024  # 500MB
 ) -> Tuple[Path, Optional[str]]:
@@ -197,7 +196,6 @@ def download_binary(
     Args:
         dest_dir: Directory to download to
         api_url: GitHub API URL for the release
-        arch_override: Optional architecture override
         timeout: Request timeout in seconds
         max_size: Maximum allowed download size in bytes
         
@@ -206,62 +204,57 @@ def download_binary(
     Raises:
         DownloadError: If download fails
     """
-    os_name, auto_arch = platform.get_platform_info()
-    arch = arch_override or auto_arch
-
-    if os_name == 'linux' and arch == 'x64': # Match your original logic
-        arch = 'amd64'
-    # Add other mappings if needed, e.g., arm64 might be 'aarch64' in some release names
-    elif os_name == 'darwin' and arch == 'arm64': # Example for macOS ARM
-        pass # or arch = 'arm64' if it's consistent
+    # Determine the optimal architecture for llama-server or use generic for llama-swap
+    if 'llama-server-compile' in api_url:
+        asset_name_fragment = f"llama-server-{platform.get_optimal_llama_server_architecture()}"
+    else:
+        asset_name_fragment = 'llama-swap' # Default for llama-swap
 
     try:
         # Create an SSL context using certifi's CA bundle
-        context = ssl.create_default_context(cafile=certifi.where()) # <--- THE FIX
+        context = ssl.create_default_context(cafile=certifi.where())
 
         # Make the request with the custom SSL context
         req = urllib.request.Request(api_url, headers={'Accept': 'application/vnd.github.v3+json'})
-        with urllib.request.urlopen(req, context=context) as r: # <--- PASS CONTEXT
+        with urllib.request.urlopen(req, context=context) as r:
             if r.status != 200:
                 raise RuntimeError(f"GitHub API request failed with status {r.status}: {r.read().decode()}")
             data = json.load(r)
 
         assets = data.get('assets', [])
-        # Construct the expected asset name fragment carefully
-        # Determine asset type based on API URL
-        if 'llama-server-compile' in api_url:
-            asset_name_fragment = 'llama-server'
-        elif 'llama-swappo' in api_url:
-            asset_name_fragment = 'llama-swappo'
-        else:
-            # Default to 'llama-swap' for other URLs
-            asset_name_fragment = 'llama-swap'
         found_asset = None
         for a in assets:
             name = a.get('name', '')
-            if asset_name_fragment in name:
-                # For llama-swappo, require platform/arch in name
-                if asset_name_fragment == 'llama-swappo':
-                    if os_name in name and arch in name:
+            # For llama-server, we expect the full architecture string in the name
+            if 'llama-server-compile' in api_url:
+                if asset_name_fragment in name and ('.tar.gz' in name or '.zip' in name or '.exe' in name):
+                    found_asset = a
+                    break
+            
+            # Fallback for llama-server: if specific arch not found, try generic 'llama-server'
+            if not found_asset and 'llama-server-compile' in api_url:
+                for a in assets:
+                    name = a.get('name', '')
+                    if name == 'llama-server' or name == 'llama-server.exe':
                         found_asset = a
                         break
-                # For llama-swap, require platform/arch and archive extension
-                elif asset_name_fragment == 'llama-swap':
-                    if os_name in name and arch in name and ('.tar.gz' in name or '.zip' in name):
-                        found_asset = a
-                        break
-                # For llama-server, simple match
-                else:
-                    if asset_name_fragment in name:
-                        found_asset = a
-                        break
+            # For llama-swap, we still use the old logic (os_name, arch, and archive extension)
+            elif asset_name_fragment == 'llama-swap':
+                os_name, arch = platform.get_platform_info()
+                # Map arch to the format in the asset names
+                arch_map = {'x64': 'amd64', 'arm64': 'arm64'}
+                mapped_arch = arch_map.get(arch, arch)
+                
+                # Construct regex pattern for llama-swap assets
+                # Example: llama-swap_124-custom_darwin_amd64.tar.gz
+                pattern = re.compile(r'llama-swap.*\.tar\.gz$', re.IGNORECASE)
+                if pattern.match(name):
+                    found_asset = a
+                    break
         
         if not found_asset:
             available_assets = [a.get('name') for a in assets if a.get('name')]
-            error_msg = f"No asset found for {os_name}/{arch} (looking for '{asset_name_fragment}'"
-            if asset_name_fragment == 'llama-swappo' or asset_name_fragment == 'llama-swap':
-                error_msg += f" with platform '{os_name}' and arch '{arch}'"
-            error_msg += f"). Available: {available_assets}"
+            error_msg = f"No asset found for '{asset_name_fragment}'. Available: {available_assets}"
             raise RuntimeError(error_msg)
 
         # Download asset

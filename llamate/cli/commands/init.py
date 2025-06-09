@@ -1,9 +1,8 @@
 """Initialization command implementation."""
-from pathlib import Path
 
 from ...core import config, download
-from ...services import llama_swap, llama_server
-
+from ...core import platform
+ 
 def init_command(args) -> None:
     """Initialize llamate.
     
@@ -21,6 +20,11 @@ def init_command(args) -> None:
     # Create required directories
     config.constants.LLAMATE_HOME.mkdir(parents=True, exist_ok=True)
     global_config = config.load_global_config()
+    # Save arch override if provided
+    if args.arch:
+        global_config['arch_override'] = args.arch
+        config.save_global_config(global_config)
+        print(f"Architecture override set to: {args.arch}")
     config.constants.MODELS_DIR.mkdir(exist_ok=True, parents=True)
     config.constants.GGUFS_DIR.mkdir(exist_ok=True, parents=True)
     
@@ -30,8 +34,15 @@ def init_command(args) -> None:
     try:
         # Download and install llama-server
         print("\nDownloading llama-server...")
-        server_path, server_release_sha = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest', args.arch)
+        # Automatically determine the optimal llama-server architecture
+        server_archive_path, server_release_sha = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest')
+        download.extract_binary(server_archive_path, bin_dir)
+        server_archive_path.unlink(missing_ok=True) # Remove the archive after extraction
+
+        llama_server_bin_name = platform.get_llama_server_bin_name()
+        server_path = bin_dir / llama_server_bin_name
         server_path.chmod(0o755)  # Make executable
+        
         global_config['llama_server_path'] = str(server_path)
         if server_release_sha:
             global_config['llama_server_installed_sha'] = server_release_sha # Store the SHA
@@ -40,7 +51,7 @@ def init_command(args) -> None:
         
         # Download and install llama-swap
         print("\nDownloading llama-swap...")
-        llama_swap_path, _ = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest', args.arch)
+        llama_swap_path, _ = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest')
         download.extract_binary(llama_swap_path, bin_dir)
         llama_swap_path.unlink(missing_ok=True)
         extracted_path = bin_dir / "llama-swap"

@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 from io import StringIO
 import sys
+import llamate.core.platform as platform # Import platform for get_llama_server_bin_name
 
 from llamate.cli.commands.init import init_command
 from llamate.core import config
@@ -62,6 +63,13 @@ def mock_init_command(tmp_path):
         # Update mock_download to return a tuple (path, sha) to match new return type
         mock_download.return_value = (mock_archive, None)
 
+        # Modify mock_extract to simulate extraction
+        def mock_extract_side_effect(archive_path, dest_dir):
+            # Create a dummy llama-server binary at the expected location
+            llama_server_bin_name = platform.get_llama_server_bin_name()
+            (dest_dir / llama_server_bin_name).touch()
+        mock_extract.side_effect = mock_extract_side_effect
+
         yield {
             "mock_load_config": mock_load_config,
             "mock_save_config": mock_save_config,
@@ -90,17 +98,20 @@ def test_init_command_first_run_success(mock_init_command, mock_stdout):
     mocks["mock_load_config"].assert_called_once()
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
-    # Should be the downloaded path, not the user input
-    assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
+    # Should be the extracted binary path
+    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
 
     # Assert download and extract were called
     assert mocks["mock_download"].call_count == 2
-    llama_server_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest', None)
-    llama_swap_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest', None)
+    llama_server_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest')
+    llama_swap_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest')
     assert llama_server_call in mocks["mock_download"].call_args_list
     assert llama_swap_call in mocks["mock_download"].call_args_list
-    mocks["mock_extract"].assert_called_once_with(mocks["mock_archive"], mocks["llamate_home"] / "bin")
-    mocks["mock_extract"].assert_called_once_with(mocks["tmp_path"] / "mock_archive.tar.gz", mocks["llamate_home"] / "bin")
+    assert mocks["mock_extract"].call_count == 2
+    extract_llama_server_call = call(mocks["mock_archive"], mocks["llamate_home"] / "bin")
+    extract_llama_swap_call = call(mocks["mock_archive"], mocks["llamate_home"] / "bin")
+    assert extract_llama_server_call in mocks["mock_extract"].call_args_list
+    assert extract_llama_swap_call in mocks["mock_extract"].call_args_list
 
     # Assert success messages were printed (basic check)
     output = mock_stdout.getvalue()
@@ -126,17 +137,20 @@ def test_init_command_already_initialized(mock_init_command, mock_stdout):
     mocks["mock_load_config"].assert_called_once()
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
-    # Should be the downloaded path, not the user input
-    assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
+    # Should be the extracted binary path
+    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
 
     # Assert download and extract were called (should still happen for updates)
     assert mocks["mock_download"].call_count == 2
-    llama_server_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest', None)
-    llama_swap_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest', None)
+    llama_server_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest')
+    llama_swap_call = call(mocks["llamate_home"] / "bin", 'https://api.github.com/repos/R-Dson/llama-swap/releases/latest')
     assert llama_server_call in mocks["mock_download"].call_args_list
     assert llama_swap_call in mocks["mock_download"].call_args_list
-    mocks["mock_extract"].assert_called_once_with(mocks["mock_archive"], mocks["llamate_home"] / "bin")
-    mocks["mock_extract"].assert_called_once_with(mocks["tmp_path"] / "mock_archive.tar.gz", mocks["llamate_home"] / "bin")
+    assert mocks["mock_extract"].call_count == 2
+    extract_llama_server_call = call(mocks["mock_archive"], mocks["llamate_home"] / "bin")
+    extract_llama_swap_call = call(mocks["mock_archive"], mocks["llamate_home"] / "bin")
+    assert extract_llama_server_call in mocks["mock_extract"].call_args_list
+    assert extract_llama_swap_call in mocks["mock_extract"].call_args_list
 
     # Assert welcome message is NOT printed
     output = mock_stdout.getvalue()
@@ -153,8 +167,8 @@ def test_init_command_empty_path_input(mock_init_command, mock_stdout):
     # Assert config was saved with the correct path after the second input
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
-    # Should be the downloaded path, not the user input
-    assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
+    # Should be the extracted binary path
+    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
 
     # Output should contain success messages
     output = mock_stdout.getvalue()
@@ -170,8 +184,8 @@ def test_init_command_non_existent_path_confirm(mock_init_command, mock_stdout):
         # Assert config was saved with the non-existent path
         mocks["mock_save_config"].assert_called_once()
         saved_config = mocks["mock_save_config"].call_args[0][0]
-        # Should be the downloaded path, not the user input
-        assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
+        # Should be the extracted binary path
+        assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
 
     # Output should contain success messages
     output = mock_stdout.getvalue()
@@ -188,8 +202,8 @@ def test_init_command_non_existent_path_deny_then_valid(mock_init_command, mock_
     # Assert config was saved with the valid path
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
-    # Should be the downloaded path, not the user input
-    assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
+    # Should be the extracted binary path
+    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
 
     # Output should contain success messages
     output = mock_stdout.getvalue()
@@ -207,8 +221,8 @@ def test_init_command_path_is_directory(mock_init_command, mock_stdout):
     # Assert config was saved with the valid path
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
-    # Should be the downloaded path, not the user input
-    assert saved_config["llama_server_path"] == str(mocks["mock_archive"])
+    # Should be the extracted binary path
+    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
 
     # Output should contain success messages
     output = mock_stdout.getvalue()

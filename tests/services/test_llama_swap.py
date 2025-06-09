@@ -43,22 +43,28 @@ class MockResponse:
     def __init__(self, json_data, status_code):
         self._json_data = json_data
         self.status_code = status_code
-        self.status = status_code  # Needed for urllib compatibility
-        self.text = json.dumps(json_data) # Provide text attribute
+        self.status = status_code
+        self._content = json.dumps(json_data).encode('utf-8')
+        self._read_pos = 0
 
     def json(self):
         return self._json_data
 
-    def read(self):
-        # Simulate reading the response body
-        return json.dumps(self._json_data).encode('utf-8')
+    def read(self, size=-1):
+        if size == -1:
+            chunk = self._content[self._read_pos:]
+            self._read_pos = len(self._content)
+            return chunk
+        else:
+            chunk = self._content[self._read_pos:self._read_pos + size]
+            self._read_pos += len(chunk)
+            return chunk
 
-    # Add context manager methods
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass # Nothing to clean up for this mock
+        pass
 
 @patch('requests.get')
 def test_download_binary_success(mock_get, tmp_path, mock_platform_info, mock_download, mock_github_response):
@@ -67,7 +73,7 @@ def test_download_binary_success(mock_get, tmp_path, mock_platform_info, mock_do
     mock_response = MockResponse({
         'assets': [
             # Updated asset name and download URL to match expected format
-            {'name': 'llama-swap_linux_amd64.tar.gz', 'browser_download_url': 'https://example.com/download/llama-swap_linux_amd64.tar.gz'},
+            {'name': 'llama-swap_124-custom_linux_amd64.tar.gz', 'browser_download_url': 'https://example.com/download/llama-swap_124-custom_linux_amd64.tar.gz'},
             {'name': 'other-asset', 'browser_download_url': 'http://example.com/other-asset'},
         ]
     }, 200)
@@ -77,39 +83,14 @@ def test_download_binary_success(mock_get, tmp_path, mock_platform_info, mock_do
     with patch('urllib.request.urlopen', return_value=mock_get.return_value):
         dest_file, _ = download_binary(tmp_path, "https://api.example.com/releases/latest")
 
-    assert dest_file == tmp_path / "llama-swap_linux_amd64.tar.gz"
+    assert dest_file == tmp_path / "llama-swap_124-custom_linux_amd64.tar.gz"
     mock_download.assert_called_once_with(
-        "https://example.com/download/llama-swap_linux_amd64.tar.gz",
+        "https://example.com/download/llama-swap_124-custom_linux_amd64.tar.gz",
         dest_file,
         timeout=60,
         max_size=500*1024*1024
     )
 
-@patch('requests.get')
-def test_download_binary_arch_override(mock_get, tmp_path, mock_platform_info, mock_download, mock_github_response):
-    """Test binary download with architecture override."""
-    # Use custom MockResponse
-    mock_response = MockResponse({
-        'assets': [
-            # Updated asset name and download URL to match expected format for arm64 override
-            {'name': 'llama-swap_linux_arm64.tar.gz', 'browser_download_url': 'https://example.com/download/llama-swap_linux_arm64.tar.gz'},
-            {'name': 'other-asset', 'browser_download_url': 'http://example.com/other-asset'},
-        ]
-    }, 200)
-    print(f"Mock response for arch override test: {mock_response.__dict__}") # Debug print
-    mock_get.return_value = mock_response
-
-    with patch('urllib.request.urlopen', return_value=mock_get.return_value):
-        dest_file, _ = download_binary(tmp_path, "https://api.example.com/releases/latest", arch_override="arm64")
-
-    # Updated assertion to check for the arm64 filename
-    assert dest_file == tmp_path / "llama-swap_linux_arm64.tar.gz"
-    mock_download.assert_called_once_with(
-        "https://example.com/download/llama-swap_linux_arm64.tar.gz",
-        dest_file,
-        timeout=60,
-        max_size=500*1024*1024
-    )
 
 @patch('requests.get')
 def test_download_binary_no_matching_asset(mock_get, tmp_path, mock_platform_info, mock_download):
@@ -124,7 +105,7 @@ def test_download_binary_no_matching_asset(mock_get, tmp_path, mock_platform_inf
     mock_get.return_value = mock_response
 
     with patch('urllib.request.urlopen', return_value=mock_get.return_value):
-        with pytest.raises(RuntimeError, match=r"No asset found for linux/amd64"):
+        with pytest.raises(RuntimeError, match=r"No asset found for 'llama-swap'"):
             download_binary(tmp_path, "https://api.example.com/releases/latest")
 
 def test_download_binary_github_api_error(tmp_path, mock_platform_info, mock_download):

@@ -22,7 +22,10 @@ def create_parser() -> argparse.ArgumentParser:
 
     # Initialize command
     init_parser = subparsers.add_parser('init', help='Initialize llamate')
-    init_parser.add_argument('--arch', help='Override system architecture (amd64, arm64, etc)')
+    init_parser.add_argument('--backend', choices=['cuda', 'rocm', 'vulkan', 'metal'],
+                             help='Override the GPU backend for llama-server download')
+    init_parser.add_argument('--arch', choices=['amd64', 'arm64', 'x64', 'aarch64'],
+                             help='Override system architecture (amd64, arm64, etc)')
     init_parser.set_defaults(func=init_commands.init_command)
 
     # Set command
@@ -149,7 +152,7 @@ def main(args: Optional[List[str]] = None) -> int:
                 print("llamate needs to be initialized.")
                 if reinitialize == 'y' or reinitialize == 'yes':
                     print("Initializing llamate...")
-                    init_commands.init_command(argparse.Namespace(arch=None))
+                    init_commands.init_command(argparse.Namespace(backend=None))
                     return 0
                 else:
                     print("Initialization skipped.")
@@ -157,7 +160,7 @@ def main(args: Optional[List[str]] = None) -> int:
                     return 1
             
             print("Re-initializing llamate...")
-            init_commands.init_command(argparse.Namespace(arch=None))
+            init_commands.init_command(argparse.Namespace(backend=None))
 
         if hasattr(parsed_args, 'func'):
             parsed_args.func(parsed_args)
