@@ -112,6 +112,7 @@ The default `llama-server` binary is built for Linux/NVIDIA. If it doesn't work 
 - Implement `llamate copy <source> <destination>` to duplicate model configurations/aliases.
 - Look into supporting Vulkan and AMD ROCm.
 - Add support for importing model yaml files.
+- Make all paths distro agnostic, or split Windows and UNIX.
 
 # Acknowledgement
 

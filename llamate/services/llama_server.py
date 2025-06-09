@@ -76,13 +76,13 @@ def run_server(cmd: List[str]) -> subprocess.Popen:
         RuntimeError: If the server fails to start
     """
     try:
-        # Run server in non-blocking mode
+        # Run server in non-blocking mode with output suppressed
         process = subprocess.Popen(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             text=True
         )
         return process
     except subprocess.SubprocessError as e:
-        raise RuntimeError(f"Failed to start llama server: {e}")
+        raise RuntimeError(f"Failed to start llama server: {e}") from e

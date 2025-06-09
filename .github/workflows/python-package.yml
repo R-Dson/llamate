@@ -10,56 +10,158 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    
+    outputs:
+      version: ${{ steps.get_version.outputs.version_tag }}
+
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest pyYAML pytest-mock requests certifi
+          pip install flake8 pytest pyYAML pytest-mock requests certifi pyinstaller
+
+      # Linting and testing are often run on just one OS (e.g., Linux) to save time,
+      # unless there are OS-specific tests. For now, keeping them in all matrix jobs.
       - name: Lint with flake8
+        if: matrix.os == 'ubuntu-latest' # Example: Run lint only on Linux
         run: |
-          # Stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit with zero even if there are warnings (non-zero exit would stop the build)
           exit 0
+
       - name: Test with pytest
         run: |
           pytest tests
-      - name: Generate Version File
+
+      - name: Generate Version File and Tag
         id: get_version
+        shell: bash # Explicitly use bash for consistency
         run: |
-          git fetch --tags
+          git fetch --tags --force
           latest_tag=$(git tag | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
           if [ -z "$latest_tag" ]; then
-            echo "v0.1.0" > VERSION
+            calculated_version="v0.1.0"
           else
             major=$(echo $latest_tag | cut -d. -f1 | tr -d 'v')
             minor=$(echo $latest_tag | cut -d. -f2)
             patch=$(echo $latest_tag | cut -d. -f3)
             next_patch=$((patch + 1))
-            echo "v$major.$minor.$next_patch" > VERSION
+            calculated_version="v$major.$minor.$next_patch"
           fi
-      - name: Package with PyInstaller
+          echo "Version to be used: $calculated_version"
+          echo "$calculated_version" > VERSION
+          echo "version_tag=$calculated_version" >> $GITHUB_OUTPUT
+
+      - name: Determine OS, Architecture, and Binary Names
+        id: build_info
+        shell: bash # Explicitly use bash for consistency
         run: |
-          pip install pyinstaller
+          OS_LOWER=""
+          ARCH=""
+          PYINSTALLER_OUTPUT_BASENAME="llamate" # Base name from your spec
+          BINARY_SUFFIX=""
+
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            OS_LOWER="linux"
+            ARCH=$(uname -m)
+          elif [ "${{ runner.os }}" == "macOS" ]; then
+            OS_LOWER="macos"
+            ARCH=$(uname -m)
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            OS_LOWER="windows"
+            # $PROCESSOR_ARCHITECTURE on Windows runners: AMD64, ARM64
+            ARCH="$PROCESSOR_ARCHITECTURE" 
+            BINARY_SUFFIX=".exe"
+          else
+            OS_LOWER="unknown"
+            ARCH="unknown"
+            echo "::error::Unsupported runner.os: ${{ runner.os }}"
+            exit 1
+          fi
+          
+          # Normalize architecture names for consistency if desired
+          if [ "$ARCH" == "AMD64" ]; then # Windows specific
+            ARCH="x86_64"
+          fi
+          # On macOS, arm64 is common. On Linux, aarch64 is common for ARM.
+          # For simplicity, we'll keep them as reported unless strong reasons to normalize further.
+
+          FINAL_BINARY_FILENAME="${PYINSTALLER_OUTPUT_BASENAME}-${OS_LOWER}-${ARCH}${BINARY_SUFFIX}"
+          PYINSTALLER_GENERATED_NAME="${PYINSTALLER_OUTPUT_BASENAME}${BINARY_SUFFIX}"
+
+          echo "os_name=${OS_LOWER}" >> $GITHUB_OUTPUT
+          echo "architecture=${ARCH}" >> $GITHUB_OUTPUT
+          echo "final_binary_filename=${FINAL_BINARY_FILENAME}" >> $GITHUB_OUTPUT
+          echo "pyinstaller_generated_name=${PYINSTALLER_GENERATED_NAME}" >> $GITHUB_OUTPUT
+          
+          echo "Runner OS: ${{ runner.os }}"
+          echo "OS Name (lower): $OS_LOWER"
+          echo "Architecture: $ARCH"
+          echo "PyInstaller will generate: $PYINSTALLER_GENERATED_NAME"
+          echo "Final binary filename: $FINAL_BINARY_FILENAME"
+
+            
+      - name: Package with PyInstaller
+        # shell: bash # Keep bash for consistency, but the conditional command will handle Windows
+        run: |
+          echo "Current shell: $SHELL" # For debugging the shell being used
+          # PyInstaller creates dist/llamate (Linux/Mac) or dist/llamate.exe (Windows)
+          # based on `name='llamate'` in your spec file.
           pyinstaller llamate.spec
+          
+          PYINSTALLER_OUTPUT_PATH="dist/${{ steps.build_info.outputs.pyinstaller_generated_name }}"
+          FINAL_BINARY_PATH="dist/${{ steps.build_info.outputs.final_binary_filename }}"
+
+          echo "PyInstaller output expected at: $PYINSTALLER_OUTPUT_PATH"
+          ls -l dist/ # List contents to verify
+          echo "Renaming to: $FINAL_BINARY_PATH"
+          
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            # Use PowerShell for robust renaming on Windows
+            powershell -Command "Move-Item -Path '$PYINSTALLER_OUTPUT_PATH' -Destination '$FINAL_BINARY_PATH' -Force"
+            # Alternative using cmd.exe's move, if powershell has issues (unlikely)
+            # cmd /c "move \"$PYINSTALLER_OUTPUT_PATH\" \"$FINAL_BINARY_PATH\""
+          else
+            # Use mv for Linux and macOS
+            mv "$PYINSTALLER_OUTPUT_PATH" "$FINAL_BINARY_PATH"
+          fi
+          
+          echo "Packaged binary as: $FINAL_BINARY_PATH"
+          ls -l dist/ # List contents again to verify rename
+        # No need to explicitly set shell: bash here if the default is already bash for the runner,
+        # or if the PowerShell command is self-contained. However, for consistency with other steps,
+        # keeping it might be okay. The important part is the conditional logic inside.
+        # If this step still defaults to cmd.exe on windows, then the `if [ ... ]` won't work.
+        # So, it's better to ensure it runs in a shell that understands `if`.
+        shell: bash
+
+    
+
       - name: Upload Native Binary Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: llamate # Artifact containing the compiled binary
+          name: llamate-binary-${{ steps.build_info.outputs.os_name }} # e.g., llamate-binary-linux
           path: |
-            dist
+            dist/${{ steps.build_info.outputs.final_binary_filename }}
             VERSION
           if-no-files-found: error
 
   release:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Release job can run on Ubuntu as it just handles files
     permissions:
       contents: write
 
@@ -68,35 +170,105 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Get Latest Tag
-        id: get_latest_tag
-        run: |
-          # The version is now generated in the build step and included in the artifact.
-          # This step is kept for consistency with the release action's tag generation.
-          git fetch --tags
-          latest_tag=$(git tag | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
-          if [ -z "$latest_tag" ]; then
-            echo "next_tag=v0.1.0" >> $GITHUB_OUTPUT
-          else
-            major=$(echo $latest_tag | cut -d. -f1 | tr -d 'v')
-            minor=$(echo $latest_tag | cut -d. -f2)
-            patch=$(echo $latest_tag | cut -d. -f3)
-            next_patch=$((patch + 1))
-            echo "next_tag=v$major.$minor.$next_patch" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download Native Binary Artifact
+      - name: Download All Binary Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: llamate # Must match the 'name' in the upload-artifact step
-          path: . # Download artifact contents into the current directory
+          path: downloaded-artifacts # Downloads all artifacts into subdirectories here
+
+      - name: Debug List Downloaded Artifact Contents
+        run: |
+          echo "--- Contents of downloaded-artifacts ---"
+          ls -lR downloaded-artifacts
+          echo "----------------------------------------"
+
+      - name: Prepare Release Assets
+        id: prep_assets
+        shell: bash # Explicitly use bash
+        run: |
+          mkdir -p release-assets
+          echo "Searching for and copying binaries..."
+
+          ASSETS_COPIED=0
+
+          # Linux
+          LINUX_ARTIFACT_DIR="downloaded-artifacts/llamate-binary-linux/dist"
+          if [ -d "$LINUX_ARTIFACT_DIR" ]; then
+            LINUX_BINARY_PATH=$(find "$LINUX_ARTIFACT_DIR" -name "llamate-linux-*" -type f ! -name "*.exe" -print -quit)
+            if [ -n "$LINUX_BINARY_PATH" ]; then
+              echo "Found Linux binary: $LINUX_BINARY_PATH"
+              cp "$LINUX_BINARY_PATH" release-assets/
+              ASSETS_COPIED=$((ASSETS_COPIED + 1))
+            else
+              echo "Warning: Linux binary not found in $LINUX_ARTIFACT_DIR"
+            fi
+          else
+            echo "Warning: Linux artifact directory not found: $LINUX_ARTIFACT_DIR"
+          fi
+          
+          # macOS
+          MACOS_ARTIFACT_DIR="downloaded-artifacts/llamate-binary-macos/dist"
+          if [ -d "$MACOS_ARTIFACT_DIR" ]; then
+            MACOS_BINARY_PATH=$(find "$MACOS_ARTIFACT_DIR" -name "llamate-macos-*" -type f ! -name "*.exe" -print -quit)
+            if [ -n "$MACOS_BINARY_PATH" ]; then
+              echo "Found macOS binary: $MACOS_BINARY_PATH"
+              cp "$MACOS_BINARY_PATH" release-assets/
+              ASSETS_COPIED=$((ASSETS_COPIED + 1))
+            else
+              echo "Warning: macOS binary not found in $MACOS_ARTIFACT_DIR"
+            fi
+          else
+            echo "Warning: macOS artifact directory not found: $MACOS_ARTIFACT_DIR"
+          fi
+
+          # Windows
+          WINDOWS_ARTIFACT_DIR="downloaded-artifacts/llamate-binary-windows/dist"
+          if [ -d "$WINDOWS_ARTIFACT_DIR" ]; then
+            WINDOWS_BINARY_PATH=$(find "$WINDOWS_ARTIFACT_DIR" -name "llamate-windows-*.exe" -type f -print -quit)
+            if [ -n "$WINDOWS_BINARY_PATH" ]; then
+              echo "Found Windows binary: $WINDOWS_BINARY_PATH"
+              cp "$WINDOWS_BINARY_PATH" release-assets/
+              ASSETS_COPIED=$((ASSETS_COPIED + 1))
+            else
+              echo "Warning: Windows binary not found in $WINDOWS_ARTIFACT_DIR"
+            fi
+          else
+            echo "Warning: Windows artifact directory not found: $WINDOWS_ARTIFACT_DIR"
+          fi
+          
+          echo "Copying VERSION file..."
+          # The VERSION file should be in each artifact's root. Pick one.
+          VERSION_COPIED=false
+          for os_name in linux macos windows; do
+            if [ -f "downloaded-artifacts/llamate-binary-$os_name/VERSION" ]; then
+              cp "downloaded-artifacts/llamate-binary-$os_name/VERSION" release-assets/
+              VERSION_COPIED=true
+              break
+            fi
+          done
+          if [ "$VERSION_COPIED" = false ]; then
+            echo "Error: VERSION file not found in any artifact!"
+            exit 1
+          fi
+          
+          echo "Contents of release-assets:"
+          ls -lR release-assets/
+          
+          if [ "$ASSETS_COPIED" -eq 0 ]; then
+            echo "Error: No binaries were copied to release-assets. Check find commands and artifact contents."
+            exit 1
+          fi
+
+          echo "asset_paths=release-assets/*" >> $GITHUB_OUTPUT
+          release_tag_from_file=$(cat release-assets/VERSION)
+          echo "TAG_NAME=${release_tag_from_file}" >> $GITHUB_OUTPUT
+          echo "Using tag from VERSION file: ${release_tag_from_file}"
 
       - name: Create and Upload Release
         id: create_release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ steps.get_latest_tag.outputs.next_tag }}
-          name: "llamate ${{ steps.get_latest_tag.outputs.next_tag }}"
+          tag: ${{ steps.prep_assets.outputs.TAG_NAME }}
+          name: "llamate ${{ steps.prep_assets.outputs.TAG_NAME }}"
           generateReleaseNotes: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "dist/*"
+          artifacts: "${{ steps.prep_assets.outputs.asset_paths }}"

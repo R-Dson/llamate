@@ -27,7 +27,6 @@ def serve_command(args) -> None:
 
     # Ensure the config file is up-to-date
     llama_swap.save_llama_swap_config()
-    print(f"Generated llama-swap config at {config.constants.LLAMA_SWAP_CONFIG_FILE}")
 
     # Build the command
     cmd_list = [str(swap_path), "--config", str(config.constants.LLAMA_SWAP_CONFIG_FILE)]
