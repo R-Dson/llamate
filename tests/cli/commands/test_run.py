@@ -72,7 +72,9 @@ def test_run_command_server_not_running(mock_global_config, mock_requests_post, 
     mock_requests_post.side_effect = requests.exceptions.ConnectionError("Connection refused")
 
     with patch('builtins.input', side_effect=["test message"]):
-        run_command(MagicMock(model_name="test-model"))
+        # Create a mock args object with host and port set
+        mock_args = MagicMock(model_name="test-model", host="localhost", port=8080)
+        run_command(mock_args)
 
     captured = capsys.readouterr()
     assert "Error: Could not connect to the llama-swap server at http://localhost:8080/v1/chat/completions." in captured.err

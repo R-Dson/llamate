@@ -128,8 +128,8 @@ def test_run_server_success():
         
         mock_popen.assert_called_once_with(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             text=True
         )
         assert process == mock_process
