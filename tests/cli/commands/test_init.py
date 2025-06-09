@@ -1,14 +1,12 @@
 """Tests for the init command."""
 import pytest
 from unittest.mock import call
-from pathlib import Path
 from unittest.mock import patch, MagicMock
 from io import StringIO
 import sys
 import llamate.core.platform as platform # Import platform for get_llama_server_bin_name
 
 from llamate.cli.commands.init import init_command
-from llamate.core import config
 from llamate import constants
 
 # Fixture to mock necessary components for init_command tests
@@ -99,7 +97,7 @@ def test_init_command_first_run_success(mock_init_command, mock_stdout):
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
     # Should be the extracted binary path
-    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
+    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / platform.get_llama_server_bin_name())
 
     # Assert download and extract were called
     assert mocks["mock_download"].call_count == 2
@@ -138,7 +136,7 @@ def test_init_command_already_initialized(mock_init_command, mock_stdout):
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
     # Should be the extracted binary path
-    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
+    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / platform.get_llama_server_bin_name())
 
     # Assert download and extract were called (should still happen for updates)
     assert mocks["mock_download"].call_count == 2
@@ -168,7 +166,7 @@ def test_init_command_empty_path_input(mock_init_command, mock_stdout):
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
     # Should be the extracted binary path
-    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
+    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / platform.get_llama_server_bin_name())
 
     # Output should contain success messages
     output = mock_stdout.getvalue()
@@ -185,7 +183,7 @@ def test_init_command_non_existent_path_confirm(mock_init_command, mock_stdout):
         mocks["mock_save_config"].assert_called_once()
         saved_config = mocks["mock_save_config"].call_args[0][0]
         # Should be the extracted binary path
-        assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
+        assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / platform.get_llama_server_bin_name())
 
     # Output should contain success messages
     output = mock_stdout.getvalue()
@@ -203,7 +201,7 @@ def test_init_command_non_existent_path_deny_then_valid(mock_init_command, mock_
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
     # Should be the extracted binary path
-    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
+    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / platform.get_llama_server_bin_name())
 
     # Output should contain success messages
     output = mock_stdout.getvalue()
@@ -222,7 +220,7 @@ def test_init_command_path_is_directory(mock_init_command, mock_stdout):
     mocks["mock_save_config"].assert_called_once()
     saved_config = mocks["mock_save_config"].call_args[0][0]
     # Should be the extracted binary path
-    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / "llama-server")
+    assert saved_config["llama_server_path"] == str(mocks["llamate_home"] / "bin" / platform.get_llama_server_bin_name())
 
     # Output should contain success messages
     output = mock_stdout.getvalue()
