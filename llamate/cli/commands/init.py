@@ -37,7 +37,9 @@ def init_command(args) -> None:
         # Automatically determine the optimal llama-server architecture
         server_archive_path, server_release_sha = download.download_binary(bin_dir, 'https://api.github.com/repos/R-Dson/llama-server-compile/releases/latest')
         download.extract_binary(server_archive_path, bin_dir)
-        server_archive_path.unlink(missing_ok=True) # Remove the archive after extraction
+        # Remove the archive after extraction, but only if it was an actual archive
+        if server_archive_path.suffix in ['.zip', '.gz', '.tgz']:
+            server_archive_path.unlink(missing_ok=True)
 
         llama_server_bin_name = platform.get_llama_server_bin_name()
         server_path = bin_dir / llama_server_bin_name

@@ -169,3 +169,11 @@ def get_llama_server_bin_name() -> str:
     # but for consistency, we'll return a base name.
     # The download and execution logic will use the full architecture string.
     return "llama-server.exe" if is_windows() else "llama-server"
+
+def get_llama_swap_bin_name() -> str:
+    """Get the platform-specific llama-swap binary name.
+    
+    Returns:
+        str: 'llama-swap.exe' on Windows, 'llama-swap' elsewhere
+    """
+    return "llama-swap.exe" if is_windows() else "llama-swap"

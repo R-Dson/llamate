@@ -228,7 +228,8 @@ def download_binary(
             name = a.get('name', '')
             # For llama-server, we expect the full architecture string in the name
             if 'llama-server-compile' in api_url:
-                if asset_name_fragment in name and ('.tar.gz' in name or '.zip' in name or '.exe' in name):
+                # Accept the asset if it is exactly the fragment (without extension) or if it contains the fragment and an extension
+                if name == asset_name_fragment or (asset_name_fragment in name and ('.tar.gz' in name or '.zip' in name or '.exe' in name)):
                     found_asset = a
                     break
             
@@ -239,16 +240,20 @@ def download_binary(
                     if name == 'llama-server' or name == 'llama-server.exe':
                         found_asset = a
                         break
-            # For llama-swap, we still use the old logic (os_name, arch, and archive extension)
+            # For llama-swap, we need to select based on OS and architecture
             elif asset_name_fragment == 'llama-swap':
                 os_name, arch = platform.get_platform_info()
                 # Map arch to the format in the asset names
                 arch_map = {'x64': 'amd64', 'arm64': 'arm64'}
                 mapped_arch = arch_map.get(arch, arch)
                 
-                # Construct regex pattern for llama-swap assets
-                # Example: llama-swap_124-custom_darwin_amd64.tar.gz
-                pattern = re.compile(r'llama-swap.*\.tar\.gz$', re.IGNORECASE)
+                # Construct regex pattern for llama-swap assets based on OS and architecture
+                # Example: llama-swap_124-custom_linux_amd64.tar.gz or llama-swap_124-custom_windows_amd64.zip
+                if os_name == 'windows':
+                    pattern = re.compile(rf'llama-swap.*_{os_name}_{mapped_arch}\.zip$', re.IGNORECASE)
+                else:
+                    pattern = re.compile(rf'llama-swap.*_{os_name}_{mapped_arch}\.tar\.gz$', re.IGNORECASE)
+                
                 if pattern.match(name):
                     found_asset = a
                     break
@@ -303,6 +308,22 @@ def extract_binary(archive: Path, dest_dir: Path) -> None:
         archive: Path to the downloaded archive
         dest_dir: Directory to extract to
     """
+    llama_server_bin_name = platform.get_llama_server_bin_name()
+    final_binary_path = dest_dir / llama_server_bin_name
+
+    # If the archive is already in the destination directory and is not a known archive type,
+    # assume it's a direct binary that was downloaded directly to its final location.
+    # We need to rename it to the expected binary name and make it executable.
+    if archive.parent == dest_dir and \
+       not (archive.suffix == '.zip' or archive.suffix == '.gz' or archive.suffix == '.tgz'):
+        if archive != final_binary_path: # Only rename if current name is different
+            print(f"DEBUG: extract_binary - Renaming direct binary: {archive} to {final_binary_path}")
+            archive.rename(final_binary_path)
+        if sys.platform != "win32":
+            os.chmod(final_binary_path, os.stat(final_binary_path).st_mode | 0o111) # Add execute permissions
+        print(f"DEBUG: extract_binary - Early return: Direct binary already in destination, renamed, and made executable: {final_binary_path}")
+        return
+
     # Check if the file is a known archive type
     if archive.suffix == '.zip': # Handles .zip files
         with zipfile.ZipFile(archive, 'r') as z:
@@ -311,23 +332,22 @@ def extract_binary(archive: Path, dest_dir: Path) -> None:
         with tarfile.open(archive, 'r:gz') as t:
             t.extractall(dest_dir)
     else: # Assume it's a direct binary if not a known archive type
-        target_path = dest_dir / archive.name
         # Ensure destination directory exists
         dest_dir.mkdir(parents=True, exist_ok=True)
         
         # Remove existing file/directory if it exists at the target path
-        if target_path.exists():
-            if target_path.is_dir():
-                shutil.rmtree(target_path)
+        if final_binary_path.exists():
+            if final_binary_path.is_dir():
+                shutil.rmtree(final_binary_path)
             else:
-                target_path.unlink()
+                final_binary_path.unlink()
         
-        # Move the binary to the destination directory
-        shutil.move(str(archive), str(target_path))
+        # Move and rename the binary to the destination directory with the correct name
+        shutil.move(str(archive), str(final_binary_path))
         
         # Make the binary executable on Unix-like systems
         if sys.platform != "win32":
-            os.chmod(target_path, os.stat(target_path).st_mode | 0o111) # Add execute permissions
+            os.chmod(final_binary_path, os.stat(final_binary_path).st_mode | 0o111) # Add execute permissions
         return # Exit after moving the binary, no further extraction needed
     
     # Handle folder structure: if the archive extracted into a 'bin' folder, move its contents to the destination
