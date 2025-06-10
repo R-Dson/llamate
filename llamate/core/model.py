@@ -1,12 +1,8 @@
 """Model management functionality."""
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple, Union
-import json
+from typing import Dict, Any, List, Optional, Tuple
 import re
-from .. import constants
-from . import config
 from . import platform
-from ..data.model_aliases import MODEL_ALIASES
+from ..services.aliases import get_model_aliases
 from ..utils.exceptions import InvalidInputError, ResourceError
 
 def parse_model_alias(alias: str) -> Optional[Dict[str, Any]]:
@@ -29,11 +25,11 @@ def parse_model_alias(alias: str) -> Optional[Dict[str, Any]]:
         raise InvalidInputError(f"Invalid alias format: '{alias}'. Only alphanumeric, -, :, and _ allowed")
 
     # Check direct alias first
-    if alias in MODEL_ALIASES:
-        return MODEL_ALIASES[alias].copy()
+    if alias in get_model_aliases():
+        return get_model_aliases()[alias].copy()
 
     # Check if the input matches any alias's repo path
-    for alias_name, config in MODEL_ALIASES.items():
+    for alias_name, config in get_model_aliases().items():
         if alias == config["hf_repo"]:
             print(f"Using pre-configured alias {alias_name} for {alias}")
             return config.copy()

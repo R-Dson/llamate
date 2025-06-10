@@ -4,7 +4,7 @@ import sys
 
 from ...core import config, model
 from ...core import download
-from ...data.model_aliases import MODEL_ALIASES
+from ...services.aliases import get_model_aliases
 
 def model_add_command(args) -> None:
     """Add a new model.
@@ -35,7 +35,7 @@ def model_add_command(args) -> None:
             raise model.InvalidInputError(str(e)) from e
 
     # Use alias as model name if provided, otherwise use hf_spec for aliased models
-    if args.hf_spec in MODEL_ALIASES:
+    if args.hf_spec in get_model_aliases():
         model_name = model.validate_model_name(args.alias or args.hf_spec)
     else:
         model_name = model.validate_model_name(args.alias or Path(model_data["hf_file"]).stem)
@@ -151,8 +151,8 @@ def model_pull_command(args) -> None:
     
     # Check input type
     # Check for pre-configured model alias
-    if model_name_or_spec in MODEL_ALIASES:
-        config_dict = MODEL_ALIASES[model_name_or_spec].copy()
+    if model_name_or_spec in get_model_aliases():
+        config_dict = get_model_aliases()[model_name_or_spec].copy()
         model_name = model_name_or_spec
     elif ':' in model_name_or_spec or model_name_or_spec.startswith("https://"):
         # Parse as HF spec
@@ -274,3 +274,14 @@ def model_show_command(args) -> None:
         print("  No custom arguments set.")
 
     print("License: Not available") # Placeholder as per plan
+
+def model_list_aliases_command(args) -> None:
+    """List all model aliases."""
+    aliases = get_model_aliases()
+    if not aliases:
+        print("No aliases defined")
+        return
+    
+    print("Available aliases:")
+    for alias in aliases.keys():
+        print(f"  • {alias}")

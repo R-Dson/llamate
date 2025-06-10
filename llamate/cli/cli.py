@@ -12,7 +12,7 @@ from .commands import model as model_commands
 from .commands import run as run_commands
 from .commands import serve as serve_commands
 from .commands import update as update_commands
-from ..data.model_aliases import MODEL_ALIASES
+from ..services.aliases import get_model_aliases
 
 def create_parser() -> argparse.ArgumentParser:
     """Create the command-line argument parser."""
@@ -37,7 +37,10 @@ def create_parser() -> argparse.ArgumentParser:
     set_parser.set_defaults(func=config_commands.handle_set_command)
 
     # Model management commands
-    alias_list = "\n".join([f"  • {alias}" for alias in MODEL_ALIASES.keys()])
+    alias_keys = list(get_model_aliases().keys())[:10]
+    alias_list = "\n".join([f"  • {alias}" for alias in alias_keys])
+    if len(alias_keys) > 10:
+        alias_list += f"\n  ... and {len(alias_keys) - 10} more (use 'list-aliases' to see all)"
     add_parser = subparsers.add_parser(
         'add',
         help='Add a new model',
@@ -79,6 +82,11 @@ def create_parser() -> argparse.ArgumentParser:
     copy_parser.add_argument('source_model', help='Name or alias of the source model')
     copy_parser.add_argument('new_model_name', help='New name for the copied model')
     copy_parser.set_defaults(func=model_commands.model_copy_command)
+
+    # List aliases command
+    list_aliases_parser = subparsers.add_parser('list-aliases',
+                                                help='List all available model aliases')
+    list_aliases_parser.set_defaults(func=model_commands.model_list_aliases_command)
 
     # Config commands
     config_parser = subparsers.add_parser('config', help='Model configuration commands')

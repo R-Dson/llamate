@@ -1,20 +1,19 @@
 """Tests for model management functionality."""
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from llamate.core import model
-from llamate.data.model_aliases import MODEL_ALIASES
+from llamate.services.aliases import get_model_aliases
 
-# Fixture to mock MODEL_ALIASES for consistent testing
+# Fixture to mock get_model_aliases for consistent testing
 @pytest.fixture
 def mock_model_aliases():
-    original_aliases = MODEL_ALIASES.copy()
     mock_aliases = {
         "test_alias": {"hf_repo": "mock/repo", "hf_file": "mock.gguf", "args": {"temp": "0.7"}},
         "another_alias": {"hf_repo": "another/repo", "hf_file": "another.gguf", "args": {}},
         "repo_only_alias": {"hf_repo": "repo/only", "hf_file": "file.gguf", "args": {}}
     }
-    with patch('llamate.data.model_aliases.MODEL_ALIASES', mock_aliases):
+    with patch('llamate.services.aliases.get_model_aliases', return_value=mock_aliases):
         yield mock_aliases
 
 # Fixture to mock platform.detect_gpu
