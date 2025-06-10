@@ -8,7 +8,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('llamate/data/model_aliases.py', 'llamate/data'),  # Include model aliases data
+        ('llamate/services/aliases.py', 'llamate/services'),  # Updated to use the existing aliases file
         (certifi.where(), 'certifi'),
         ('VERSION', '.'), # Include the VERSION file at the root of the bundle
     ],
