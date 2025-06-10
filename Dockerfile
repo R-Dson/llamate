@@ -1,13 +1,9 @@
-# Define build arguments for target platform (defaults to current build platform)
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
-
 # Builder stage: build the llamate binary
 FROM python:3.11-slim-bullseye AS builder
 
 # Set environment variables to reflect the target platform
-ENV TARGETOS=${TARGETOS}
-ENV TARGETARCH=${TARGETARCH}
+ENV TARGETOS=linux
+ENV TARGETARCH=amd64
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -29,6 +25,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
     requests \
     certifi \
     pyinstaller
+
+# Create a placeholder VERSION file for PyInstaller
+RUN echo "0.0.0" > VERSION
 
 # Build binary
 RUN pyinstaller llamate.spec
