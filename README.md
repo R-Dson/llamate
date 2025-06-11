@@ -5,7 +5,7 @@ llamate (llama + mate) is a simple, "Ollama-like" tool for managing and running 
 `llamate` streamlines your local LLM workflow by automating downloads, configuration, and execution. It's designed for users who want a straightforward way to handle models with GPU acceleration.
 
 ## Key Features ✨
-- **Easy Model Management:** Add models from Huggingface or use simple aliases (`llama3:8b`).
+- **Easy Model Management:** Add models from Huggingface or use simple aliases (`llama3:8b`). All available can be found [here](https://github.com/R-Dson/llamate-alias/blob/main/README.md).
 - **Automated Setup:** Downloads and manages GGUF files and required server binaries for you.
 - **GPU Accelerated:** Runs models using a `llama.cpp`-based server, optimized for GPUs.
 - **Persistent Configuration:** Set default inference parameters (context size, temp, etc.) for each model.
@@ -42,7 +42,7 @@ docker run --device=/dev/kfd --device=/dev/dri --group-add=video -p 11434:11434 
 ## Usage ⚡
 
 #### 1. Add and Download a Model
-You can use a pre-configured alias or a full Huggingface repository link.
+You can use a pre-configured alias or a full Huggingface repository link.  All available aliases can be found on [R-Dson/llamate-alias](https://github.com/R-Dson/llamate-alias/blob/main/README.md).
 
 ```bash
 # Add and automatically download using an alias
