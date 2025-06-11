@@ -48,56 +48,129 @@ You can use a pre-configured alias or a full Huggingface repository link.
 # Add and automatically download using an alias
 llamate add llama3:8b
 
-# To add without downloading, use --no-pull
-llamate add llama3:8b --no-pull
-
 # Or, add a specific model from Huggingface with a custom alias
 # llamate add <hf_repo>:<hf_file> --alias <your-alias>
 llamate add bartowski/Qwen_Qwen3-0.6B-GGUF:Qwen_Qwen3-0.6B-Q8_0.gguf --alias my-model
-
 ```
 
 #### 2. Run a Model
 
 **API Server (Ollama-compatible):**
 ```bash
-# Start the server
+# Start the server (listens on localhost:11434 by default)
 llamate serve
 ```
 
 #### 3. (Optional) Chat with your LLM
 **Interactive Chat:**
 ```bash
-# Basic chat function.
+# Basic chat function
 llamate run llama3:8b
 
-# Connect to a specific host (default: localhost) or a specific port (default: 11434)
-llamate run llama3:8b --host <IP> --port <PORT>
 ```
 
-#### Other Commands
+## Available Commands ⚡
+
+- `init`: Initialize llamate
+- `set`: Set global config or model arguments
+- `add`: Add a new model
+- `list`: List configured models
+- `remove`: Remove a model
+- `pull`: Download GGUF file for a model
+- `show`: Show model information
+- `copy`: Copy a model configuration
+- `list-aliases`: List all available model aliases
+- `config`: Model configuration commands
+- `serve`: Run the llama-swap server
+- `update`: Update llamate CLI components
+- `run`: Run a model in interactive chat mode
+- `print`: Print the llama-swap config
+
+#### Model Management Commands
 
 ```bash
-# Run initiation again
-llamate init
 
-# List all configured models
+# List configured models
 llamate list
 
-# Set custom parameters for a model (context size, temp, etc., https://github.com/ggml-org/llama.cpp/tree/master/tools/server for more settings)
-llamate set llama3:8b ctx-size=8192 n-gpu-layers=99
-# or
-# llamate set my-model ctx-size=32768 temp=0.6 top-p=0.95 min-p=0.05 top-k=40 n-gpu-layers=99
+# Show detailed information about a model
+llamate show llama3:8b
 
-# Remove a model and its GGUF file
-llamate remove llama3:8b
+# Remove a model and optionally its GGUF file
+llamate remove llama3:8b --delete-gguf
 
-# For existing aliases, you can still download manually with
+
+# To add without downloading, use --no-pull
+llamate add llama3:8b --no-pull
+
+# To disable automatic GPU configuration, use --no-gpu
+llamate add llama3:8b --no-gpu
+
+# Set model arguments during creation
+llamate add llama3:8b --set "ctx-size=8192" "n-gpu-layers=99"
+
+# To listen on all interfaces (public) use --public
+llamate serve --public
+
+# Use a custom port
+llamate serve --port 9090
+
+# Connect to a specific host or port
+llamate run llama3:8b --host <IP> --port <PORT>
+
+# Download GGUF file for a model
 llamate pull my-model
 
-# Use a custom port (default: 11434)
-llamate serve --port 9090
+# Copy a model configuration
+llamate copy source-model new-model-name
 ```
+
+#### Configuration Commands
+
+```bash
+# List all available model aliases
+llamate list-aliases
+
+# Set global config value
+llamate set ggufs_storage_path=/new/path
+
+# Set model argument
+llamate config set llama3:8b ctx-size 16384
+
+# Get model argument
+llamate config get llama3:8b ctx-size
+
+# List all model arguments
+llamate config list llama3:8b
+
+# Remove model argument
+llamate config remove llama3:8b ctx-size
+```
+
+#### Utility Commands
+
+```bash
+# Re-initialize llamate
+llamate init
+
+# Update llamate components
+llamate update
+
+# Print llama-swap config
+llamate print
+```
+
+## Configuration
+
+`llamate` stores all its files in `~/.config/llamate/`:
+- `bin/`: Server binaries (`llama-server`, `llama-swap`).
+- `models/`: YAML configuration for each model.
+- `ggufs/`: Downloaded GGUF model files.
+
+## TODO
+- Add pre-configured optimal parameters for pre-configured alias models.
+- Add support for importing model yaml files.
+
 
 ## Platform Support & Troubleshooting
 
@@ -120,20 +193,9 @@ If tne `llama-server` binary still doesn't work for you, you can compile your ow
 3.  **Replace the Binary**:
     Copy your compiled `server` binary to the `llamate` config directory:
     ```bash
-    cp ./server ~/.config/llamate/bin/llama-server
+    cp ./llama-server ~/.config/llamate/bin/llama-server
     ```
 </details>
-
-## Configuration
-
-`llamate` stores all its files in `~/.config/llamate/`:
-- `bin/`: Server binaries (`llama-server`, `llama-swap`).
-- `models/`: YAML configuration for each model.
-- `ggufs/`: Downloaded GGUF model files.
-
-## TODO
-- Add pre-configured optimal parameters for pre-configured alias models.
-- Add support for importing model yaml files.
 
 # Acknowledgement
 
