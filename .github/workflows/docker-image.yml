@@ -33,7 +33,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/llamate-tool:latest
-            ${{ secrets.DOCKER_USERNAME }}/llamate-tool:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/llamate:latest
+            ${{ secrets.DOCKER_USERNAME }}/llamate:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

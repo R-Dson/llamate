@@ -1,10 +1,6 @@
 # Builder stage: build the llamate binary
 FROM python:3.11-slim-bullseye AS builder
 
-# Set environment variables to reflect the target platform
-ENV TARGETOS=linux
-ENV TARGETARCH=amd64
-
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -39,24 +35,24 @@ FROM debian:bullseye-slim
 RUN apt-get update && apt-get install -y \
     libssl1.1 \
     ca-certificates \
+    pciutils \
+    usbutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
-ENV MODEL_DIR=/app/models
 ENV PORT=11434
 ENV LLAMATE_HOME=/app
 
-# Create directory structure
-RUN mkdir -p ${MODEL_DIR} ${LLAMATE_HOME}/bin
-
 # Copy built binary
-COPY --from=builder /app/dist/llamate /app/llamate
-
-# Initialize llamate to download the llama-swap binary
-RUN /app/llamate init
+COPY --from=builder /app/dist/llamate /usr/local/bin/llamate
 
 # Expose port
 EXPOSE ${PORT}
 
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN mkdir -p /root/.config && ln -s /app /root/.config/llamate
+
 # Set entrypoint
-ENTRYPOINT ["/app/llamate", "serve", "--port", "11434", "--public"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["serve", "--port", "11434"]
