@@ -40,7 +40,7 @@ def create_parser() -> argparse.ArgumentParser:
     alias_keys = list(get_model_aliases().keys())[:10]
     alias_list = "\n".join([f"  • {alias}" for alias in alias_keys])
     if len(alias_keys) > 10:
-        alias_list += f"\n  ... and {len(alias_keys) - 10} more (use 'list-aliases' to see all)"
+        alias_list += f"\n  ... and {len(alias_keys) - 10} more (use 'llamate list-aliases' to see all)"
     add_parser = subparsers.add_parser(
         'add',
         help='Add a new model',
