@@ -10,12 +10,34 @@ llamate (llama + mate) is a simple, "Ollama-like" tool for managing and running 
 - **GPU Accelerated:** Runs models using a `llama.cpp`-based server, optimized for GPUs.
 - **Persistent Configuration:** Set default inference parameters (context size, temp, etc.) for each model.
 
-## Installation 🚀
+## Native Installation 🚀
+##### `llama-server` is having issues currently with ROCm and will not work by default.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/R-Dson/llamate/main/install.sh | bash
 ```
 > You may need to restart your terminal or run `source ~/.bashrc` for the command to be available.
+
+## Running with Docker 🐳
+
+You can run `llamate` in a Docker container.
+
+### Run the Container
+
+Ensure you have Docker and your GPU drivers installed.
+
+#### For NVIDIA GPUs:
+
+```bash
+docker run --gpus all -p 11434:11434 -v ~/.config:/app rdson/llamate <command>
+```
+
+#### For AMD ROCm GPUs:
+##### `llama-server` is having issues currently with ROCm and will not work by default.
+```bash
+docker run --device=/dev/kfd --device=/dev/dri --group-add=video -p 11434:11434 -v ~/.config/llamate:/app rdson/llamate <command>
+```
+> **Note:** The `--gpus all` flag is generally sufficient for NVIDIA GPUs. For AMD ROCm, you might need to specify `--device=/dev/kfd --device=/dev/dri --group-add=video` to ensure proper access to the GPU. The `llamate` tool will automatically detect your GPU and download the appropriate `llama-server` binary.
 
 ## Usage ⚡
 
