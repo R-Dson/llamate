@@ -41,13 +41,7 @@ docker run --device=/dev/kfd --device=/dev/dri --group-add=video -p 11434:11434 
 
 ## Usage ⚡
 
-#### 1. Initialize `llamate`
-This downloads the necessary server binaries. 
-```bash
-llamate init
-```
-
-#### 2. Add and Download a Model
+#### 1. Add and Download a Model
 You can use a pre-configured alias or a full Huggingface repository link.
 
 ```bash
@@ -61,23 +55,20 @@ llamate add llama3:8b --no-pull
 # llamate add <hf_repo>:<hf_file> --alias <your-alias>
 llamate add bartowski/Qwen_Qwen3-0.6B-GGUF:Qwen_Qwen3-0.6B-Q8_0.gguf --alias my-model
 
-# For existing aliases, you can still download manually
-llamate pull my-model
 ```
 
-#### 3. Run a Model
+#### 2. Run a Model
 
 **API Server (Ollama-compatible):**
 ```bash
-# Start the server with a model
+# Start the server
 llamate serve
-
-# Use a custom port (default: 11434)
-llamate serve --port 9090
 ```
 
+#### 3. (Optional) Chat with your LLM
 **Interactive Chat:**
 ```bash
+# Basic chat function.
 llamate run llama3:8b
 
 # Connect to a specific host (default: localhost) or a specific port (default: 11434)
@@ -87,6 +78,9 @@ llamate run llama3:8b --host <IP> --port <PORT>
 #### Other Commands
 
 ```bash
+# Run initiation again
+llamate init
+
 # List all configured models
 llamate list
 
@@ -97,6 +91,12 @@ llamate set llama3:8b ctx-size=8192 n-gpu-layers=99
 
 # Remove a model and its GGUF file
 llamate remove llama3:8b
+
+# For existing aliases, you can still download manually with
+llamate pull my-model
+
+# Use a custom port (default: 11434)
+llamate serve --port 9090
 ```
 
 ## Platform Support & Troubleshooting
