@@ -71,7 +71,6 @@ llamate run llama3:8b
 
 ## Available Commands ⚡
 
-- `init`: Initialize llamate
 - `set`: Set global config or model arguments
 - `add`: Add a new model
 - `list`: List configured models
@@ -85,6 +84,7 @@ llamate run llama3:8b
 - `update`: Update llamate CLI components
 - `run`: Run a model in interactive chat mode
 - `print`: Print the llama-swap config
+- `init`: Initialize llamate (runs automatically during the installation)
 
 #### Model Management Commands
 
@@ -170,7 +170,6 @@ llamate print
 ## TODO
 - Add pre-configured optimal parameters for pre-configured alias models.
 - Add support for importing model yaml files.
-
 
 ## Platform Support & Troubleshooting
 
