@@ -179,7 +179,7 @@ llamate print
 <details>
 <summary><b>Running on other hardware (AMD, Mac, etc.)</b></summary>
 
-If tne `llama-server` binary still doesn't work for you, you can compile your own:
+If the `llama-server` binary still does not work for you, you can compile your own:
 
 1.  **Download `llama.cpp`**:
     ```bash
