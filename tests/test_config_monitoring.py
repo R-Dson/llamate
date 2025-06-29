@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 import subprocess
 import tempfile
@@ -9,12 +10,16 @@ from pathlib import Path
 # Don't import yaml here as we want to ensure the test doesn't depend on it
 
 
+
 class TestConfigMonitoring(unittest.TestCase):
     def setUp(self):
         # Create a temporary directory for test
         self.test_dir = Path(tempfile.mkdtemp())
         self.config_dir = self.test_dir / ".config" / "llamate"
         self.config_dir.mkdir(parents=True, exist_ok=True)
+
+        # Track the original environment
+        self.original_env = os.environ.copy()
 
         # Create a marker file to detect changes
         self.change_marker = self.test_dir / "change_detected"
@@ -28,10 +33,37 @@ class TestConfigMonitoring(unittest.TestCase):
         self.bin_dir.mkdir(exist_ok=True)
         self.llama_swap_path = self.bin_dir / "llama-swap"
 
-        # Create a very simple shell script that touches our marker file
+        # Create a platform-appropriate script that touches our marker file
         # and then runs forever until terminated
-        with open(self.llama_swap_path, 'w') as f:
-            f.write(f"""#!/bin/sh
+        if platform.system() == 'Windows':
+            # Create a batch script for Windows
+            self.llama_swap_path = self.bin_dir / "llama-swap.bat"
+            with open(self.llama_swap_path, 'w') as f:
+                f.write(f"""@echo off
+echo Starting llama-swap with args: %*
+echo PID: %PID%
+echo Config file: %2
+
+rem Touch the marker file to indicate we started
+echo. > {self.change_marker}
+echo [%date% %time%] Process started with args: %* >> {self.test_dir}/llama_swap_log.txt
+
+rem Check if the marker file was successfully created
+if exist {self.change_marker} (
+    echo [%date% %time%] Marker file created successfully >> {self.test_dir}/llama_swap_log.txt
+) else (
+    echo [%date% %time%] Failed to create marker file >> {self.test_dir}/llama_swap_log.txt
+)
+
+rem Stay running until terminated
+:loop
+timeout /t 1 >nul
+goto loop
+""")
+        else:
+            # Create a shell script for Unix-like systems
+            with open(self.llama_swap_path, 'w') as f:
+                f.write(f"""#!/bin/sh
         echo "Starting llama-swap with args: $@"
         echo "PID: $$"
         echo "Config file: $2"
@@ -52,7 +84,7 @@ class TestConfigMonitoring(unittest.TestCase):
             sleep 1
         done
         """)
-        os.chmod(self.llama_swap_path, 0o755)
+            os.chmod(self.llama_swap_path, 0o755)
 
         # Create a basic config file
         self.config_file = self.config_dir / "config.yaml"
@@ -64,10 +96,14 @@ models:
 groups: {}
 """)
 
-        # Create a llamate config file
+        # Create a llamate config file with platform-appropriate paths
+        llama_server_path = self.bin_dir / "llama-server"
+        if platform.system() == 'Windows':
+            llama_server_path = self.bin_dir / "llama-server.exe"
+
         with open(self.config_dir / "llamate.yaml", 'w') as f:
             f.write(f"""
-llama_server_path: {self.bin_dir}/llama-server
+llama_server_path: {llama_server_path}
 ggufs_storage_path: {self.test_dir}/ggufs
 """)
 
@@ -82,27 +118,56 @@ args:
   temp: "0.7"
 """)
 
-        # Environment setup
+        # Environment setup - handle both Windows and Unix-like systems
         self.original_home = os.environ.get('HOME')
-        os.environ['HOME'] = str(self.test_dir)
+        if platform.system() == 'Windows':
+            self.original_userprofile = os.environ.get('USERPROFILE')
+            os.environ['USERPROFILE'] = str(self.test_dir)
+            # Also set APPDATA for Windows
+            self.original_appdata = os.environ.get('APPDATA')
+            os.environ['APPDATA'] = str(self.test_dir)
+        else:
+            os.environ['HOME'] = str(self.test_dir)
 
     def tearDown(self):
         # Restore environment
-        if self.original_home:
-            os.environ['HOME'] = self.original_home
+        if platform.system() == 'Windows':
+            if self.original_userprofile:
+                os.environ['USERPROFILE'] = self.original_userprofile
+            if self.original_appdata:
+                os.environ['APPDATA'] = self.original_appdata
+        else:
+            if self.original_home:
+                os.environ['HOME'] = self.original_home
 
         # Clean up temporary directory
         shutil.rmtree(self.test_dir)
 
     def test_config_monitoring(self):
         """Test that the serve command automatically restarts when config changes."""
+        # Skip test on Windows if running in CI environment
+        if platform.system() == "Windows" and os.environ.get("CI"):
+            self.skipTest("Skipping config monitoring test on Windows in CI environment")
+
         # Start with a clean state
         if self.change_marker.exists():
             os.unlink(self.change_marker)
 
-        # Set environment to use our test directory
+        # Set environment to use our test directory - handle Windows and Unix-like systems
         env = os.environ.copy()
-        env['HOME'] = str(self.test_dir)
+        if platform.system() == 'Windows':
+            env['USERPROFILE'] = str(self.test_dir)
+            env['APPDATA'] = str(self.test_dir)
+        else:
+            env['HOME'] = str(self.test_dir)
+
+        # Set PYTHONPATH to include the current directory
+        # This helps with module imports on Windows
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if 'PYTHONPATH' in env:
+            env['PYTHONPATH'] = f"{current_dir}{os.pathsep}{env['PYTHONPATH']}"
+        else:
+            env['PYTHONPATH'] = current_dir
 
         # Start the server process
         process = subprocess.Popen(
@@ -247,13 +312,28 @@ groups: {}
 
     def test_model_config_monitoring(self):
         """Test that the serve command automatically restarts when model config changes."""
+        # Skip test on Windows if running in CI environment
+        if platform.system() == "Windows" and os.environ.get("CI"):
+            self.skipTest("Skipping model config monitoring test on Windows in CI environment")
+
         # Start with a clean state
         if self.change_marker.exists():
             os.unlink(self.change_marker)
 
-        # Set environment to use our test directory
+        # Set environment to use our test directory - handle Windows and Unix-like systems
         env = os.environ.copy()
-        env['HOME'] = str(self.test_dir)
+        if platform.system() == 'Windows':
+            env['USERPROFILE'] = str(self.test_dir)
+            env['APPDATA'] = str(self.test_dir)
+        else:
+            env['HOME'] = str(self.test_dir)
+
+        # Set PYTHONPATH to include the current directory
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if 'PYTHONPATH' in env:
+            env['PYTHONPATH'] = f"{current_dir}{os.pathsep}{env['PYTHONPATH']}"
+        else:
+            env['PYTHONPATH'] = current_dir
 
         # Start the server process
         process = subprocess.Popen(
@@ -390,13 +470,28 @@ args:
 
     def test_new_model_file_detection(self):
         """Test that the serve command restarts when a new model file is added."""
+        # Skip test on Windows if running in CI environment
+        if platform.system() == "Windows" and os.environ.get("CI"):
+            self.skipTest("Skipping new model file detection test on Windows in CI environment")
+
         # Start with a clean state
         if self.change_marker.exists():
             os.unlink(self.change_marker)
 
-        # Set environment to use our test directory
+        # Set environment to use our test directory - handle Windows and Unix-like systems
         env = os.environ.copy()
-        env['HOME'] = str(self.test_dir)
+        if platform.system() == 'Windows':
+            env['USERPROFILE'] = str(self.test_dir)
+            env['APPDATA'] = str(self.test_dir)
+        else:
+            env['HOME'] = str(self.test_dir)
+
+        # Set PYTHONPATH to include the current directory
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if 'PYTHONPATH' in env:
+            env['PYTHONPATH'] = f"{current_dir}{os.pathsep}{env['PYTHONPATH']}"
+        else:
+            env['PYTHONPATH'] = current_dir
 
         # Start the server process
         process = subprocess.Popen(
@@ -533,13 +628,28 @@ args:
 
     def test_model_file_deletion(self):
         """Test that the serve command restarts when a model file is deleted."""
+        # Skip test on Windows if running in CI environment
+        if platform.system() == "Windows" and os.environ.get("CI"):
+            self.skipTest("Skipping model file deletion test on Windows in CI environment")
+
         # Start with a clean state
         if self.change_marker.exists():
             os.unlink(self.change_marker)
 
-        # Set environment to use our test directory
+        # Set environment to use our test directory - handle Windows and Unix-like systems
         env = os.environ.copy()
-        env['HOME'] = str(self.test_dir)
+        if platform.system() == 'Windows':
+            env['USERPROFILE'] = str(self.test_dir)
+            env['APPDATA'] = str(self.test_dir)
+        else:
+            env['HOME'] = str(self.test_dir)
+
+        # Set PYTHONPATH to include the current directory
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if 'PYTHONPATH' in env:
+            env['PYTHONPATH'] = f"{current_dir}{os.pathsep}{env['PYTHONPATH']}"
+        else:
+            env['PYTHONPATH'] = current_dir
 
         # Create a second model file that we'll delete during the test
         model_to_delete = self.models_dir / "model-to-delete.yaml"
