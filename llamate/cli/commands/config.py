@@ -1,12 +1,13 @@
 """Configuration command implementations."""
-from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import List
 
 from ...core import config
+from ...services import llama_swap
+
 
 def model_set_command(model_name: str, args_list: List[str]) -> None:
     """Set multiple model arguments at once.
-    
+
     Args:
         model_name: Name of the model to configure
         args_list: List of KEY=VALUE strings
@@ -25,11 +26,15 @@ def model_set_command(model_name: str, args_list: List[str]) -> None:
 
     model_config["args"].update(updates)
     config.save_model_config(model_name, model_config)
+
+    # Update llama-swap config file whenever a model is changed
+    llama_swap.save_llama_swap_config()
+
     print(f"Updated {len(updates)} arguments for model '{model_name}'")
 
 def handle_set_command(args) -> None:
     """Handle the set command for both global and model config.
-    
+
     Args:
         args: Command line arguments which may contain model_name
     """
@@ -62,7 +67,7 @@ def handle_set_command(args) -> None:
 
 def set_global_command(key: str, value: str) -> None:
     """Set a global configuration value.
-    
+
     Args:
         key: Config key to set
         value: Value to set
@@ -76,7 +81,7 @@ def set_global_command(key: str, value: str) -> None:
 
 def config_set_command(args) -> None:
     """Set a model configuration value.
-    
+
     Args:
         args: Command line arguments containing model_name, key, and value
     """
@@ -87,11 +92,15 @@ def config_set_command(args) -> None:
 
     model_config["args"][args.key] = args.value
     config.save_model_config(args.model_name, model_config)
+
+    # Update llama-swap config file whenever a model is changed
+    llama_swap.save_llama_swap_config()
+
     print(f"Argument '{args.key}' set to '{args.value}' for model '{args.model_name}'")
 
 def config_get_command(args) -> None:
     """Get a model configuration value.
-    
+
     Args:
         args: Command line arguments containing model_name and key
     """
@@ -107,7 +116,7 @@ def config_get_command(args) -> None:
 
 def config_list_args_command(args) -> None:
     """List all arguments for a model.
-    
+
     Args:
         args: Command line arguments containing model_name
     """
@@ -126,7 +135,7 @@ def config_list_args_command(args) -> None:
 
 def config_remove_arg_command(args) -> None:
     """Remove an argument from a model's configuration.
-    
+
     Args:
         args: Command line arguments containing model_name and key
     """
@@ -140,11 +149,15 @@ def config_remove_arg_command(args) -> None:
 
     del model_config["args"][args.key]
     config.save_model_config(args.model_name, model_config)
+
+    # Update llama-swap config file whenever a model is changed
+    llama_swap.save_llama_swap_config()
+
     print(f"Argument '{args.key}' removed from model '{args.model_name}'")
 
 def print_config_command(args) -> None:
     """Print the current configuration.
-    
+
     Args:
         args: Command line arguments (unused)
     """

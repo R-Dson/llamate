@@ -6,13 +6,14 @@ from typing import List, Optional
 from .. import constants
 from ..core import config
 from ..core.version import get_version
+from ..services.aliases import get_model_aliases
 from .commands import config as config_commands
 from .commands import init as init_commands
 from .commands import model as model_commands
 from .commands import run as run_commands
 from .commands import serve as serve_commands
 from .commands import update as update_commands
-from ..services.aliases import get_model_aliases
+
 
 def create_parser() -> argparse.ArgumentParser:
     """Create the command-line argument parser."""
@@ -139,10 +140,10 @@ def create_parser() -> argparse.ArgumentParser:
 
 def main(args: Optional[List[str]] = None) -> int:
     """Main entry point for the CLI.
-    
+
     Args:
         args: Command line arguments, if None uses sys.argv[1:]
-        
+
     Returns:
         int: Exit code
     """
@@ -166,7 +167,7 @@ def main(args: Optional[List[str]] = None) -> int:
                     print("Initialization skipped.")
                     parser.print_help()
                     return 1
-            
+
             print("Re-initializing llamate...")
             init_commands.init_command(argparse.Namespace(backend=None))
 

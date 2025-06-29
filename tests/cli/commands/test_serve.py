@@ -6,13 +6,11 @@ TODO: Implement these tests once llama-swap server features are complete:
 - Error cases (model not found, port in use, etc.)
 - GPU configuration
 """
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch
 
-from llamate.cli.commands.serve import serve_command
-from llamate.core import config
-from llamate import constants
+import pytest
+
 
 @pytest.fixture
 def mock_serve_components():
@@ -30,13 +28,16 @@ def mock_serve_components():
             "temp": "0.7"
         }
     }
-    
+
     with patch('llamate.core.config.load_global_config', return_value=mock_global_config) as mock_load_global_config, \
          patch('llamate.core.config.save_global_config') as mock_save_global_config, \
          patch('llamate.core.config.load_model_config', return_value=mock_model_config) as mock_load_model_config, \
          patch('subprocess.run') as mock_run, \
+         patch('subprocess.Popen') as mock_popen, \
+         patch('threading.Thread') as mock_thread, \
          patch('sys.argv', ['llamate', 'serve', 'test_model']), \
-         patch('llamate.constants.LLAMATE_HOME', Path('/fake/llamate')) as mock_home:
+         patch('llamate.constants.LLAMATE_HOME', Path('/fake/llamate')) as mock_home, \
+         patch('llamate.constants.MODELS_DIR', Path('/fake/llamate/models')) as mock_models_dir:
         yield {
             "mock_load_global_config": mock_load_global_config,
             "mock_save_global_config": mock_save_global_config,
@@ -49,7 +50,27 @@ def mock_serve_components():
 
 # TODO: Implement test_serve_command_basic
 # TODO: Implement test_serve_command_with_custom_args
-# TODO: Implement test_serve_command_model_not_found 
+# TODO: Implement test_serve_command_model_not_found
 # TODO: Implement test_serve_command_server_error
 # TODO: Implement test_serve_command_port_in_use
 # TODO: Implement test_serve_command_gpu_config
+
+def test_config_file_monitoring(mock_serve_components):
+    """Test that the serve command monitors the main config file for changes."""
+    # This test will be implemented once the core functionality is complete
+    pass
+
+def test_model_file_monitoring(mock_serve_components):
+    """Test that the serve command monitors model configuration files for changes."""
+    # This test will be implemented once the core functionality is complete
+    pass
+
+def test_model_file_added(mock_serve_components):
+    """Test that the serve command detects when new model files are added."""
+    # This test will be implemented once the core functionality is complete
+    pass
+
+def test_model_file_deleted(mock_serve_components):
+    """Test that the serve command detects when model files are deleted."""
+    # This test will be implemented once the core functionality is complete
+    pass

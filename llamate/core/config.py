@@ -1,12 +1,12 @@
 """Configuration management for llamate."""
 from pathlib import Path
+from typing import Any, Dict, Optional
+
 import yaml
-import json
-from typing import Dict, Any, Optional, NoReturn
-from yaml.representer import SafeRepresenter
-from ..utils.exceptions import InvalidAliasError, ModelNotFoundError
 
 from .. import constants
+from ..utils.exceptions import InvalidAliasError, ModelNotFoundError
+
 
 # Custom string representer for literal blocks
 class literal_str(str): pass
@@ -19,16 +19,16 @@ yaml.add_representer(literal_str, literal_presenter)
 
 def init_paths(base_path: Optional[Path] = None) -> None:
     """Initialize global paths for llamate.
-    
+
     Args:
         base_path: Optional custom base path. If None, uses ~/.config/llamate
-        
+
     Raises:
         ValueError: If base_path is not writable
     """
     if base_path is not None and not (base_path.exists() or base_path.parent.exists()):
         raise ValueError(f"Base path {base_path} does not exist and cannot be created")
-    
+
     constants.LLAMATE_HOME = base_path or Path.home() / ".config" / "llamate"
     constants.LLAMATE_CONFIG_FILE = constants.LLAMATE_HOME / "llamate.yaml"
     constants.LLAMA_SWAP_CONFIG_FILE = constants.LLAMATE_HOME / "config.yaml"
@@ -38,7 +38,7 @@ def init_paths(base_path: Optional[Path] = None) -> None:
 
 def _ensure_config_dir() -> None:
     """Ensure configuration directory exists.
-    
+
     Raises:
         RuntimeError: If directory cannot be created
     """
@@ -50,14 +50,14 @@ def _ensure_config_dir() -> None:
 def load_global_config() -> Dict[str, Any]:
     """Load global configuration from YAML file, merging with defaults."""
     default_config = constants.DEFAULT_CONFIG.copy()
-    
+
     if not constants.LLAMATE_CONFIG_FILE.exists():
         return default_config
-        
+
     try:
         with open(constants.LLAMATE_CONFIG_FILE, 'r') as f:
             user_config = yaml.safe_load(f) or {}
-            
+
             # Merge user config with defaults
             merged_config = {**default_config, **user_config}
             return merged_config
@@ -66,10 +66,10 @@ def load_global_config() -> Dict[str, Any]:
 
 def save_global_config(config: Dict[str, Any]) -> None:
     """Save global configuration to YAML file.
-    
+
     Args:
         config: Configuration dictionary to save
-        
+
     Raises:
         RuntimeError: If config cannot be saved
     """
@@ -82,13 +82,13 @@ def save_global_config(config: Dict[str, Any]) -> None:
 
 def load_model_config(model_name: str) -> Dict[str, Any]:
     """Load configuration for a specific model.
-    
+
     Args:
         model_name: Name of the model to load
-        
+
     Returns:
         Dict[str, Any]: Model configuration with defaults
-        
+
     Raises:
         ValueError: If model doesn't exist
         RuntimeError: If config file exists but cannot be read
@@ -96,11 +96,11 @@ def load_model_config(model_name: str) -> Dict[str, Any]:
     model_file = constants.MODELS_DIR / f"{model_name}.yaml"
     if not model_file.exists():
         raise ValueError(f"Model '{model_name}' not found")
-    
+
     try:
         with open(model_file, 'r') as f:
             config = yaml.safe_load(f) or {}
-        
+
         # Handle backward compatibility
         if "default_args" in config:
             config["args"] = config.pop("default_args")
@@ -111,11 +111,11 @@ def load_model_config(model_name: str) -> Dict[str, Any]:
 
 def save_model_config(model_name: str, config: Dict[str, Any]) -> None:
     """Save configuration for a specific model.
-    
+
     Args:
         model_name: Name of the model
         config: Model configuration to save
-        
+
     Raises:
         RuntimeError: If config cannot be saved
     """
@@ -124,16 +124,21 @@ def save_model_config(model_name: str, config: Dict[str, Any]) -> None:
         model_file = constants.MODELS_DIR / f"{model_name}.yaml"
         with open(model_file, 'w') as f:
             yaml.dump(config, f)
+
+        # After saving the model config, update the llama-swap config file
+        # Import here to avoid circular imports
+        from ..services import llama_swap
+        llama_swap.save_llama_swap_config()
     except (yaml.YAMLError, OSError) as e:
         raise RuntimeError(f"Failed to save model config {model_file}: {e}")
 
 def register_alias(alias: str, model_name: str) -> None:
     """Register an alias for a model in the global configuration.
-    
+
     Args:
         alias: The alias name to register
         model_name: The actual model name to map to
-        
+
     Raises:
         InvalidAliasError: If alias is invalid
         RuntimeError: If alias registration fails
@@ -145,12 +150,12 @@ def register_alias(alias: str, model_name: str) -> None:
         raise InvalidAliasError("Alias cannot contain path separators")
     if len(alias) > 50:
         raise InvalidAliasError("Alias too long (max 50 characters)")
-    
+
     # Validate model exists
     model_file = constants.MODELS_DIR / f"{model_name}.yaml"
     if not model_file.exists():
         raise ModelNotFoundError(f"Model '{model_name}' not found")
-    
+
     # Register alias
     global_config = load_global_config()
     aliases = global_config.get("aliases", {})
@@ -160,10 +165,10 @@ def register_alias(alias: str, model_name: str) -> None:
 
 def resolve_alias(alias: str) -> Optional[str]:
     """Resolve an alias to its corresponding model name.
-    
+
     Args:
         alias: The alias to resolve
-        
+
     Returns:
         The resolved model name if found, otherwise None
     """

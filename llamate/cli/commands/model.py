@@ -1,14 +1,14 @@
 """Model management command implementations."""
-from pathlib import Path
 import sys
+from pathlib import Path
 
-from ...core import config, model
-from ...core import download
+from ...core import config, download, model
 from ...services.aliases import get_model_aliases
+
 
 def model_add_command(args) -> None:
     """Add a new model.
-    
+
     Args:
         args: Command line arguments containing hf_spec, alias, set args, and auto_gpu flag
     """
@@ -21,7 +21,7 @@ def model_add_command(args) -> None:
         model_data = model.parse_model_alias(args.hf_spec)
     except model.InvalidInputError as e:
         raise model.InvalidInputError(str(e)) from e
-    
+
     if not model_data:
         # Parse as HF spec
         try:
@@ -39,7 +39,7 @@ def model_add_command(args) -> None:
         model_name = model.validate_model_name(args.alias or args.hf_spec)
     else:
         model_name = model.validate_model_name(args.alias or Path(model_data["hf_file"]).stem)
-    
+
     # Auto GPU configuration if requested
     if args.auto_gpu:
         model_data = model.configure_gpu(model_data, model_name, auto_detect=True)
@@ -56,13 +56,13 @@ def model_add_command(args) -> None:
     model_data["proxy"] = f"http://127.0.0.1:{port}"
 
     config.save_model_config(model_name, model_data)
-    
+
     # Register custom alias if provided and different from model name
     if args.alias and args.alias != model_name:
         config.register_alias(args.alias, model_name)
-    
+
     print(f"Model '{model_name}' added successfully.")
-    
+
     # Download GGUF file unless --no-pull is specified
     if not args.no_pull:
         try:
@@ -70,7 +70,7 @@ def model_add_command(args) -> None:
             gguf_dir = global_config["ggufs_storage_path"]
             Path(gguf_dir).mkdir(parents=True, exist_ok=True)
             gguf_path = Path(gguf_dir) / model_data["hf_file"]
-            
+
             if gguf_path.exists():
                 print(f"GGUF already exists at {gguf_path}")
             else:
@@ -85,13 +85,13 @@ def model_list_command(args) -> None:
     if not config.constants.MODELS_DIR.exists():
         print("No models defined")
         return
-    
+
     global_config = config.load_global_config()
     aliases = global_config.get("aliases", {})
     reverse_aliases = {}
     for alias, model in aliases.items():
         reverse_aliases.setdefault(model, []).append(alias)
-    
+
     print("Defined models:")
     for path in config.constants.MODELS_DIR.glob("*.yaml"):
         model_name = path.stem
@@ -105,7 +105,7 @@ def model_list_command(args) -> None:
 
 def model_remove_command(args) -> None:
     """Remove a model configuration.
-    
+
     Args:
         args: Command line arguments containing model_name and delete_gguf flag
     """
@@ -123,7 +123,12 @@ def model_remove_command(args) -> None:
             global_config["aliases"] = updated_aliases
             config.save_global_config(global_config)
             print(f"Removed aliases for model '{args.model_name}'")
-        
+
+        # Update llama-swap config file
+        from ...services import llama_swap
+        llama_swap.save_llama_swap_config()
+        print(f"Updated llama-swap configuration after removing model '{args.model_name}'")
+
         # Handle GGUF removal
         if args.delete_gguf:
             # Force delete without prompt when flag is provided
@@ -146,9 +151,9 @@ def model_pull_command(args) -> None:
     if not config.constants.LLAMATE_HOME.exists():
         print("llamate is not initialized. Run 'llamate init' first.")
         raise SystemExit(1)
-    
+
     model_name_or_spec = args.model_name_or_spec
-    
+
     # Check input type
     # Check for pre-configured model alias
     if model_name_or_spec in get_model_aliases():
@@ -171,16 +176,16 @@ def model_pull_command(args) -> None:
         except ValueError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
-    
+
     global_config = config.load_global_config()
     gguf_dir = global_config["ggufs_storage_path"]
     Path(gguf_dir).mkdir(parents=True, exist_ok=True)
     gguf_path = Path(gguf_dir) / config_dict["hf_file"]
-    
+
     if gguf_path.exists():
         print(f"GGUF already exists at {gguf_path}")
         return
-    
+
     try:
         url = f"https://huggingface.co/{config_dict['hf_repo']}/resolve/main/{config_dict['hf_file']}"
         download.download_file(url, gguf_path)
@@ -200,11 +205,11 @@ def model_copy_command(args) -> None:
     try:
         source_name = resolve_model_name(args.source_model)
         new_name = model.validate_model_name(args.new_model_name)
-        
+
         if source_name == new_name:
             print("Error: Source and new model names must be different.", file=sys.stderr)
             sys.exit(1)
-            
+
         model_file = config.constants.MODELS_DIR / f"{new_name}.yaml"
         if model_file.exists():
             print(f"Error: Model '{new_name}' already exists.", file=sys.stderr)
@@ -215,11 +220,16 @@ def model_copy_command(args) -> None:
         if new_name in aliases:
             print(f"Error: '{new_name}' is already used as an alias for model '{aliases[new_name]}'.", file=sys.stderr)
             sys.exit(1)
-            
+
         model_config = config.load_model_config(source_name)
         config.save_model_config(new_name, model_config)
+
+        # Update llama-swap config after copying a model
+        from ...services import llama_swap
+        llama_swap.save_llama_swap_config()
+
         print(f"Model '{source_name}' copied to '{new_name}'.")
-        
+
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -281,7 +291,7 @@ def model_list_aliases_command(args) -> None:
     if not aliases:
         print("No aliases defined")
         return
-    
+
     print("Available aliases:")
     for alias in aliases.keys():
         print(f"  • {alias}")

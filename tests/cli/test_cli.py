@@ -1,20 +1,16 @@
 """Tests for CLI functionality"""
-import pytest
 import json
-from pathlib import Path
-from unittest.mock import patch, MagicMock
-import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from llamate.cli.commands.config import (
-    config_set_command,
     config_get_command,
     config_list_args_command,
     config_remove_arg_command,
-    handle_set_command,
-    set_global_command
+    config_set_command,
 )
-from llamate.core import config
-from llamate import constants
+
 
 def test_config_handling(test_data_dir):
     """Test configuration file handling"""
@@ -24,7 +20,7 @@ def test_config_handling(test_data_dir):
         "context_length": 2048,
         "temperature": 0.7
     }
-    
+
     config_path.write_text(json.dumps(test_config))
     loaded_config = json.loads(config_path.read_text())
     assert loaded_config == test_config
@@ -51,7 +47,8 @@ def mock_config_commands():
          patch('llamate.core.config.save_model_config') as mock_save_model_config, \
          patch('llamate.constants.DEFAULT_CONFIG', {"llama_server_path": "", "ggufs_storage_path": ""}), \
          patch('sys.stdout', new_callable=MagicMock) as mock_stdout, \
-         patch('builtins.input', return_value="") as mock_input: # Default empty input
+         patch('builtins.input', return_value="") as mock_input, \
+         patch('llamate.services.llama_swap.save_llama_swap_config') as mock_save_llama_swap_config: # Add llama_swap mock
 
         yield {
             "mock_load_global_config": mock_load_global_config,
@@ -60,6 +57,7 @@ def mock_config_commands():
             "mock_save_model_config": mock_save_model_config,
             "mock_stdout": mock_stdout,
             "mock_input": mock_input,
+            "mock_save_llama_swap_config": mock_save_llama_swap_config,
             "global_config": mock_global_config,
             "model_config": mock_model_config
         }

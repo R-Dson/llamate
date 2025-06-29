@@ -1,11 +1,17 @@
 """Tests for model management commands."""
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from llamate.cli.commands.model import model_add_command, model_list_command, model_remove_command, model_copy_command
-from llamate.cli.commands import model as model_commands
+import pytest
+
 from llamate import constants
+from llamate.cli.commands import model as model_commands
+from llamate.cli.commands.model import (
+    model_add_command,
+    model_list_command,
+    model_remove_command,
+)
 from llamate.utils.exceptions import InvalidInputError
+
 
 @pytest.fixture
 def mock_model_commands(tmp_path):
@@ -26,9 +32,12 @@ def mock_model_commands(tmp_path):
         patch('llamate.constants.LLAMATE_HOME', tmp_path / ".config" / "llamate"),
         patch('llamate.constants.MODELS_DIR', tmp_path / ".config" / "llamate" / "models"),
         patch('llamate.constants.GGUFS_DIR', tmp_path / "ggufs"),
-        patch('pathlib.Path.exists', return_value=True) as mock_path_exists, # This was the original line
-        patch('pathlib.Path.unlink') as mock_path_unlink
+        patch('pathlib.Path.exists') as mock_path_exists, # Changed to not have a default return value
+        patch('pathlib.Path.unlink') as mock_path_unlink,
+        patch('llamate.services.llama_swap.save_llama_swap_config') as mock_save_llama_swap_config
     ):
+        # Set the default return value for Path.exists
+        mock_path_exists.return_value = True
         yield {
             "mock_load_global_config": mock_load_global_config,
             "mock_save_global_config": mock_save_global_config,
@@ -44,6 +53,7 @@ def mock_model_commands(tmp_path):
             "ggufs_dir": constants.GGUFS_DIR,
             "mock_path_exists": mock_path_exists,
             "mock_path_unlink": mock_path_unlink,
+            "mock_save_llama_swap_config": mock_save_llama_swap_config,
             "tmp_path": tmp_path
         }
 
@@ -52,10 +62,10 @@ def test_model_add_command_invalid_alias(mock_model_commands, capsys):
     mocks = mock_model_commands
     mocks["mock_parse_alias"].side_effect = InvalidInputError("Invalid alias format")
     args = MagicMock(hf_spec="invalid@alias", alias=None, set=None, auto_gpu=True)
-    
+
     with pytest.raises(InvalidInputError) as excinfo:
         model_add_command(args)
-        
+
     assert "Invalid alias format" in str(excinfo.value)
     mocks["mock_save_model_config"].assert_not_called()
 
@@ -64,10 +74,10 @@ def test_model_add_command_invalid_hf_spec(mock_model_commands, capsys):
     mocks = mock_model_commands
     mocks["mock_parse_hf_spec"].side_effect = InvalidInputError("Invalid HF spec")
     args = MagicMock(hf_spec="invalid/repo:spec", alias=None, set=None, auto_gpu=True)
-    
+
     with pytest.raises(InvalidInputError) as excinfo:
         model_add_command(args)
-        
+
     assert "Invalid HF spec" in str(excinfo.value)
     mocks["mock_save_model_config"].assert_not_called()
 
@@ -90,10 +100,10 @@ def test_model_add_command_invalid_args(mock_model_commands, capsys):
     mocks = mock_model_commands
     mocks["mock_validate_args"].side_effect = InvalidInputError("Invalid argument format")
     args = MagicMock(hf_spec="user/repo:model.gguf", alias=None, set=["invalid=arg"], auto_gpu=True)
-    
+
     with pytest.raises(InvalidInputError) as excinfo:
         model_add_command(args)
-        
+
     assert "Invalid argument format" in str(excinfo.value)
     mocks["mock_save_model_config"].assert_not_called()
 
@@ -114,7 +124,7 @@ def test_model_remove_command_success(mock_model_commands, capsys, monkeypatch):
     mocks = mock_model_commands
     model_name = "test_model"
     args = MagicMock(model_name=model_name, delete_gguf=False)
-    
+
     # Simulate user input 'n'
     monkeypatch.setattr('builtins.input', lambda prompt=None: 'n')
 
@@ -149,7 +159,7 @@ def test_model_remove_command_prompt_yes(mock_model_commands, capsys, monkeypatc
     captured = capsys.readouterr()
     assert f"Model '{model_name}' definition removed." in captured.out
     assert "Do you want to remove the GGUF file" in captured.out
-    assert f"GGUF file 'test.gguf' removed." in captured.out
+    assert "GGUF file 'test.gguf' removed." in captured.out
 
 def test_model_remove_command_delete_gguf(mock_model_commands, capsys, monkeypatch):
     """Test removing a model with --delete-gguf flag (no prompt)."""
@@ -157,7 +167,7 @@ def test_model_remove_command_delete_gguf(mock_model_commands, capsys, monkeypat
     model_name = "test_model"
     mocks["mock_load_model_config"].return_value = {"hf_repo": "test/repo", "hf_file": "test.gguf", "args": {}}
     args = MagicMock(model_name=model_name, delete_gguf=True)
-    
+
     # Ensure input isn't called
     monkeypatch.setattr('builtins.input', lambda _: pytest.fail("Input should not be called with --delete-gguf"))
 
@@ -169,7 +179,7 @@ def test_model_remove_command_delete_gguf(mock_model_commands, capsys, monkeypat
     assert mocks["mock_load_global_config"].call_count == 1
     captured = capsys.readouterr()
     assert f"Model '{model_name}' definition removed." in captured.out
-    assert f"GGUF file 'test.gguf' removed." in captured.out
+    assert "GGUF file 'test.gguf' removed." in captured.out
     assert "Do you want to remove the GGUF file" not in captured.out
 
 def test_model_remove_command_model_not_found(mock_model_commands, capsys):
@@ -191,7 +201,7 @@ def test_model_copy_command_success(mock_model_commands, capsys):
     mocks = mock_model_commands
     source_model_name = "source_model"
     new_model_name = "new_model"
-    
+
     # Mock resolve_model_name to return the source_model_name directly
     with patch('llamate.cli.commands.model.resolve_model_name', return_value=source_model_name) as mock_resolve_model_name:
         # Mock model_file.exists() to return False for the new model
@@ -201,7 +211,7 @@ def test_model_copy_command_success(mock_model_commands, capsys):
         mocks["mock_load_global_config"].return_value = {"aliases": {}}
 
         args = MagicMock(source_model=source_model_name, new_model_name=new_model_name)
-        
+
         model_commands.model_copy_command(args)
 
         mock_resolve_model_name.assert_called_once_with(source_model_name)
@@ -220,12 +230,12 @@ def test_model_copy_command_source_alias(mock_model_commands, capsys):
     with patch('llamate.cli.commands.model.resolve_model_name', return_value=actual_source_model) as mock_resolve_model_name:
         new_model_path = mocks["models_dir"] / f"{new_model_name}.yaml"
         mocks["mock_path_exists"].side_effect = [True, False]
-        
+
 
         mocks["mock_load_global_config"].return_value = {"aliases": {}}
 
         args = MagicMock(source_model=source_alias, new_model_name=new_model_name)
-        
+
         model_commands.model_copy_command(args)
 
         mock_resolve_model_name.assert_called_once_with(source_alias)
@@ -238,13 +248,13 @@ def test_model_copy_command_same_name_error(mock_model_commands, capsys):
     """Test copying a model to the same name."""
     mocks = mock_model_commands
     model_name = "test_model"
-    
+
     with patch('llamate.cli.commands.model.resolve_model_name', return_value=model_name):
         args = MagicMock(source_model=model_name, new_model_name=model_name)
-        
+
         with pytest.raises(SystemExit) as excinfo:
             model_commands.model_copy_command(args)
-            
+
         assert excinfo.value.code == 1
         captured = capsys.readouterr()
         assert "Error: Source and new model names must be different." in captured.err
@@ -255,14 +265,14 @@ def test_model_copy_command_new_name_exists_as_model(mock_model_commands, capsys
     mocks = mock_model_commands
     source_model_name = "source_model"
     existing_model_name = "existing_model"
-    
+
     with patch('llamate.cli.commands.model.resolve_model_name', return_value=source_model_name):
         # Rely on default mock_path_exists behavior (returns True for all paths)
         args = MagicMock(source_model=source_model_name, new_model_name=existing_model_name)
-        
+
         with pytest.raises(SystemExit) as excinfo:
             model_commands.model_copy_command(args)
-            
+
         assert excinfo.value.code == 1
         captured = capsys.readouterr()
         assert f"Error: Model '{existing_model_name}' already exists." in captured.err
@@ -273,16 +283,16 @@ def test_model_copy_command_new_name_exists_as_alias(mock_model_commands, capsys
     mocks = mock_model_commands
     source_model_name = "source_model"
     existing_alias = "existing_alias"
-    
+
     with patch('llamate.cli.commands.model.resolve_model_name', return_value=source_model_name):
         mocks["mock_path_exists"].side_effect = [True, False]
         mocks["mock_load_global_config"].return_value = {"aliases": {existing_alias: "some_other_model"}}
-        
+
         args = MagicMock(source_model=source_model_name, new_model_name=existing_alias)
-        
+
         with pytest.raises(SystemExit) as excinfo:
             model_commands.model_copy_command(args)
-            
+
         assert excinfo.value.code == 1
         captured = capsys.readouterr()
         assert f"Error: '{existing_alias}' is already used as an alias for model 'some_other_model'." in captured.err
@@ -293,13 +303,13 @@ def test_model_copy_command_source_not_found(mock_model_commands, capsys):
     mocks = mock_model_commands
     source_model_name = "non_existent_source"
     new_model_name = "new_model"
-    
+
     with patch('llamate.cli.commands.model.resolve_model_name', side_effect=ValueError(f"Model '{source_model_name}' not found")) as mock_resolve_model_name:
         args = MagicMock(source_model=source_model_name, new_model_name=new_model_name)
-        
+
         with pytest.raises(SystemExit) as excinfo:
             model_commands.model_copy_command(args)
-            
+
         assert excinfo.value.code == 1
         captured = capsys.readouterr()
         assert f"Error: Model '{source_model_name}' not found" in captured.err
@@ -312,12 +322,12 @@ def test_model_copy_command_not_initialized(mock_model_commands, capsys):
     mocks["mock_path_exists"].side_effect = [False, True]
     source_model_name = "source_model"
     new_model_name = "new_model"
-    
+
     args = MagicMock(source_model=source_model_name, new_model_name=new_model_name)
-    
+
     with pytest.raises(SystemExit) as excinfo:
         model_commands.model_copy_command(args)
-        
+
     assert excinfo.value.code == 1
     captured = capsys.readouterr()
     assert "llamate is not initialized. Run 'llamate init' first." in captured.out
