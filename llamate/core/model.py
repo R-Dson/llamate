@@ -21,7 +21,7 @@ def parse_model_alias(alias: str) -> Optional[Dict[str, Any]]:
         return None
 
     # Validate alias format
-    if not re.match(r"^[\w\-:]+$", alias):
+    if not re.match(r"^[\w\-./:]+$", alias):
         raise InvalidInputError(f"Invalid alias format: '{alias}'. Only alphanumeric, -, :, and _ allowed")
 
     # Check direct alias first
