@@ -101,7 +101,7 @@ def detect_gpu() -> Tuple[bool, Optional[int]]:
             capture_output=True, text=True, check=True
         )
         memory_gb = float(result.stdout.strip()) / 1024  # Convert to GB
-        suggested_layers = min(32, max(4, int(memory_gb / 0.75)))  # Rough heuristic
+        suggested_layers = min(99, max(4, int(memory_gb / 0.75)))  # Rough heuristic
         return True, suggested_layers
     except (subprocess.SubprocessError, FileNotFoundError, ValueError):
         pass
