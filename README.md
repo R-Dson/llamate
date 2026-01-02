@@ -1,3 +1,5 @@
+This is now a function found in [llama-server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server#model-presets) directly as presets! This is now archived.
+
 # llamate 🌟
 
 llamate (llama + mate) is a simple, "Ollama-like" tool for managing and running GGUF language models from your terminal.
